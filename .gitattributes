@@ -1,0 +1,2 @@
+# GitHub's Languages bar: count only the scripts added in this repository, not Microsoft's original notebooks.
+*.ipynb linguist-documentation

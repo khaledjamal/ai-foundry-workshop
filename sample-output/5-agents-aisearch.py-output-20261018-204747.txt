@@ -1,0 +1,107 @@
+Sample output of 2-notebooks/2-agent_service/5-agents-aisearch.py
+Run on 2026-10-18 20:47 with: uv run python 2-notebooks/2-agent_service/5-agents-aisearch.py
+Real endpoints, resource names and GUIDs are replaced with placeholders such as <resource-name> and <id>; agent, thread and message IDs are kept.
+--------------------------------------------------------------------------------
+================================================================================
+AZURE AI SEARCH + FOUNDRY AGENT FITNESS DEMO
+================================================================================
+Disclaimer: This program is a technical demonstration and does not provide professional medical advice.
+Loaded .env from: 2-notebooks/.env
+
+================================================================================
+STEP 1: CREATE AND POPULATE AZURE AI SEARCH INDEX
+================================================================================
+Azure AI Search endpoint: https://<search-service>.search.windows.net
+SearchIndexClient created successfully.
+Created index: myfitnessindex
+Upload SUCCESS: key=1
+Upload SUCCESS: key=2
+Upload SUCCESS: key=3
+Upload SUCCESS: key=4
+Uploaded 4 fitness documents.
+
+Direct Azure AI Search check for 'Strength':
+--------------------------------------------------------------------------------
+1: Adjustable Dumbbell | Strength | $59.99 | A compact, adjustable weight for targeted muscle workouts. Price: $59.99.
+4: Resistance Bands | Strength | $15.0 | Set of colorful bands for light to moderate resistance workouts. Price: $15.00.
+--------------------------------------------------------------------------------
+
+================================================================================
+STEP 2: CREATE FOUNDRY AGENT WITH AZURE AI SEARCH TOOL AND PRICE FUNCTION
+================================================================================
+Foundry project endpoint: https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
+AIProjectClient created successfully.
+Azure AI Search connection name: <search-service>
+Azure AI Search connection ID:   /subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.CognitiveServices/accounts/<resource-name>/projects/<project-name>/connections/<search-service>
+Created Azure AI Search agent: asst_nf583vPiZHl2xLC3zWcFYwYA
+Model: gpt-4o-mini
+Tools: ['azure_ai_search', 'function'] (function: find_items_under)
+
+================================================================================
+STEP 3: RUN AGENT QUERIES
+================================================================================
+
+================================================================================
+QUESTION 1 OF 2
+================================================================================
+Created thread: thread_bPA2d819Q7gfxGaC2gpaTwZc
+Question: Which items are good for strength training?
+Created user message: msg_Nc6LZZg0wnO1uTEicYXLFij1
+Run status: RunStatus.COMPLETED
+Tool calls:
+  - azure_ai_search input: strength training equipment 
+    azure_ai_search output: {'summary': 'Retrieved 2 documents.', 'metadata': {'urls': ['doc_0', 'doc_1'], 'titles': ['doc_0', 'doc_1'], 'get_urls': ['https://<search-service>.search.windows.net/indexes/myfitnessindex/docs/1?api-version=2024-07-01&$select=FitnessItemID,Name,Category,Description', 'https://<search-service>.search.windows.net/indexes/myfitnessindex/docs/4?api-version=2024-07-01&$select=FitnessItemID,Name,Category,Description'], 'ids': ['1', '4'], 'command': 'search', 'query_type': 'simple', 'top_k': 5, 'filter': True}}
+
+Conversation:
+--------------------------------------------------------------------------------
+
+USER:
+Which items are good for strength training?
+
+ASSISTANT:
+Here are some great items for strength training:
+
+1. **Adjustable Dumbbell**
+   - A compact, adjustable weight suitable for targeted muscle workouts.
+   - **Price:** $59.99.
+
+2. **Resistance Bands**
+   - A set of colorful bands designed for light to moderate resistance workouts.
+   - **Price:** $15.00.
+
+These items can help you effectively enhance your strength training routine【3:0†source】【3:1†source】.
+--------------------------------------------------------------------------------
+Deleted thread: thread_bPA2d819Q7gfxGaC2gpaTwZc
+
+================================================================================
+QUESTION 2 OF 2
+================================================================================
+Created thread: thread_gdM7HEQvPyoGSg92lZyeleGV
+Question: I need something for cardio under $300, any suggestions?
+Created user message: msg_Wfz7ttiqdWmA57bILKHSj7Eo
+  [function] find_items_under(max_price=300, category=Cardio) -> 0 item(s)
+Run status: RunStatus.COMPLETED
+Tool calls:
+  - function find_items_under({"max_price":300,"category":"Cardio"})
+    output: No products cost $300.00 or less in category Cardio. Cheapest product in Cardio: Treadmill (Cardio): $499.00
+
+Conversation:
+--------------------------------------------------------------------------------
+
+USER:
+I need something for cardio under $300, any suggestions?
+
+ASSISTANT:
+Currently, there are no cardio products available for $300 or less. The closest option is a treadmill priced at $499. If you want to consider increasing your budget or looking into alternative categories, please let me know!
+--------------------------------------------------------------------------------
+Deleted thread: thread_gdM7HEQvPyoGSg92lZyeleGV
+
+================================================================================
+COMPLETED: all 2 agent runs finished with status COMPLETED
+================================================================================
+
+================================================================================
+CLEANUP
+================================================================================
+Deleted temporary agent: asst_nf583vPiZHl2xLC3zWcFYwYA
+Deleted temporary index: myfitnessindex

@@ -1,0 +1,73 @@
+Sample output of 2-notebooks/2-agent_service/6-agents-az-functions-mcp.py
+Run on 2026-10-17 11:40 with: source ../../.venv-agents-v2/bin/activate && python 2-notebooks/2-agent_service/6-agents-az-functions-mcp.py
+Real endpoints, resource names and GUIDs are replaced with placeholders such as <resource-name> and <id>; agent, thread and message IDs are kept.
+--------------------------------------------------------------------------------
+Project endpoint: https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
+Model deployment: gpt-4o-mini
+MCP server: workout_tools at https://<function-app>.azurewebsites.net/runtime/webhooks/mcp, allowed tools ['list_workout_goals', 'suggest_workout']
+Function app is running (HTTP 401 without a key, as expected)
+Key from project connection: workout-mcp-key (ConnectionType.CUSTOM)
+
+Agent created: name=workout-mcp-agent version=1
+
+User: Which workout goals can you plan for?
+Response (status completed):
+  mcp_list_tools  server=workout_tools  tools=['list_workout_goals', 'suggest_workout']  error=None
+  mcp_approval_request  server=workout_tools  tool=list_workout_goals  arguments={}
+  (tokens: input 251, output 17)
+  -> approve list_workout_goals
+Response (status completed):
+  mcp_call  server=workout_tools  tool=list_workout_goals  arguments={}
+            output: {"goals": [{"goal": "cardio", "description": "Raise the heart rate for endurance."}, {"goal": "strength", "description": "Build muscle with bodyweight moves."}, {"goal": "mobility", "description": "Move joints through their range and stretch."}]}
+  error=None
+  message (answer, printed below)
+  (tokens: input 345, output 86)
+
+Agent: I can plan workouts for the following goals:
+
+1. **Cardio**: Raise the heart rate for endurance.
+2. **Strength**: Build muscle with bodyweight moves.
+3. **Mobility**: Move joints through their range and stretch.
+
+If you have a specific goal in mind, let me know, and I can create a workout plan for you! This is general fitness information, not medical advice.
+
+User: Plan a 30-minute strength workout for me.
+Response (status completed):
+  mcp_approval_request  server=workout_tools  tool=suggest_workout  arguments={"goal":"strength","minutes":30}
+  (tokens: input 438, output 24)
+  -> approve suggest_workout
+Response (status completed):
+  mcp_call  server=workout_tools  tool=suggest_workout  arguments={"goal":"strength","minutes":30}
+            output: {"goal": "strength", "total_minutes": 30, "warm_up": {"minutes": 4, "do": "arm swings, hip circles, 10 easy squats"}, "main": {"minutes": 23, "rounds": 2, "seconds_per_exercise": 172, "exercises": ["squats", "push-ups (knees or wall if needed)", "glute bridges", "plank"]}, "cool_down": {"minutes": 3, "do": "chest, hip and hamstring stretches"}, "note": "General fitness ideas, not medical advice. Stop if anything hurts."}
+  error=None
+  message (answer, printed below)
+  (tokens: input 611, output 136)
+
+Agent: Here's your 30-minute strength workout plan:
+
+### Warm-Up (4 minutes)
+- Arm swings
+- Hip circles
+- 10 easy squats
+
+### Main Workout (23 minutes)
+- **Rounds**: 2
+- **Exercises** (172 seconds each):
+  1. Squats
+  2. Push-ups (knees or wall if needed)
+  3. Glute bridges
+  4. Plank
+
+### Cool Down (3 minutes)
+- Chest stretch
+- Hip stretch
+- Hamstring stretch
+
+Remember to listen to your body, and stop if anything hurts. This is general fitness information, not medical advice.
+
+Agent version deleted: workout-mcp-agent v1
+Total tokens: input 1645, output 263
+Checks:
+  PASS  turn 1 called list_workout_goals
+  PASS  turn 2 called suggest_workout(strength, 30)
+  PASS  both turns answered

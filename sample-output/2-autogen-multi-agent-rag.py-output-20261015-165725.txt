@@ -1,0 +1,49 @@
+Sample output of 2-notebooks/4-frameworks/2-autogen-multi-agent-rag.py
+Run on 2026-10-15 16:57 with: uv run python 2-notebooks/4-frameworks/2-autogen-multi-agent-rag.py
+Real endpoints, resource names and GUIDs are replaced with placeholders such as <resource-name> and <id>; agent, thread and message IDs are kept.
+--------------------------------------------------------------------------------
+
+================================================================================
+AUTOGEN MULTI-AGENT RAG
+================================================================================
+Loaded .env from: 2-notebooks/.env
+Azure OpenAI endpoint: https://<resource-name>.openai.azure.com/
+Chat deployment:       gpt-4o-mini (API version 2024-08-01-preview)
+Embedding deployment:  text-embedding-3-small
+Embedded 5 health tips.
+
+================================================================================
+Query
+================================================================================
+user: I'm very busy but want to stay fit. What quick exercises can I do?
+
+RetrieverAgent -> tool call: retrieve_tips({"query":"quick exercises for busy people to stay fit"})
+  [tool] retrieve_tips(query='quick exercises for busy people to stay fit') similarity: tip1 0.48, tip2 0.47, tip4 0.44, tip3 0.44, tip5 0.38
+RetrieverAgent <- tool result:
+Source: Fitness Guru => Do a 10-minute HIIT workout to boost your metabolism.
+Source: Health Coach => Take a brisk 15-minute walk to clear your mind and improve circulation.
+Source: Personal Trainer => Incorporate strength training twice a week for overall fitness.
+
+RetrieverAgent:
+Source: Fitness Guru => Do a 10-minute HIIT workout to boost your metabolism.
+Source: Health Coach => Take a brisk 15-minute walk to clear your mind and improve circulation.
+Source: Personal Trainer => Incorporate strength training twice a week for overall fitness.
+
+ResponderAgent:
+Hey there, busy bee! 🐝 Staying fit when you're short on time is totally doable! Here are some fun tips to incorporate into your routine, all from our expert sources:
+
+1. **HIIT it Hard**: Try squeezing in a 10-minute High-Intensity Interval Training (HIIT) workout to give your metabolism a boost! (Source: Fitness Guru)
+
+2. **Walk it Out**: Take a brisk 15-minute walk! It’s a great way to clear your mind and improve circulation while getting a little movement in. (Source: Health Coach)
+
+3. **Strength is Key**: Aim to incorporate strength training twice a week for fabulous overall fitness. Just two sessions, and you're golden! (Source: Personal Trainer)
+
+Remember, this is all about keeping it fun and manageable! Just a friendly reminder, though—this isn’t medical advice. You've got this! 💪🌟
+
+(chat tokens: prompt 256, completion 207)
+
+================================================================================
+Result
+================================================================================
+Stop reason: 'ResponderAgent' answered
+COMPLETED: the ResponderAgent answered.

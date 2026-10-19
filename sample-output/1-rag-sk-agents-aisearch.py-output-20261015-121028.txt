@@ -1,0 +1,54 @@
+Sample output of 2-notebooks/4-frameworks/1-rag-sk-agents-aisearch.py
+Run on 2026-10-15 12:10 with: MODEL_DEPLOYMENT_NAME=gpt-4o-mini 2-notebooks/4-frameworks/.venv/bin/python 2-notebooks/4-frameworks/1-rag-sk-agents-aisearch.py
+Real endpoints, resource names and GUIDs are replaced with placeholders such as <resource-name> and <id>; agent, thread and message IDs are kept.
+--------------------------------------------------------------------------------
+Disclaimer: this is a technical demonstration and does not provide medical advice.
+Loaded .env from: 2-notebooks/.env
+Foundry project endpoint: https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
+Model: gpt-4o-mini
+Azure AI Search connection: <search-service>
+Azure AI Search endpoint:   https://<search-service>.search.windows.net
+
+=== Step 1: create and fill the search index ===
+Created index: fitness-sk-index
+Uploaded 4 documents.
+Searchable documents: 4/4
+
+Direct Azure AI Search check for 'Strength':
+  Adjustable Dumbbell | Strength | $59.99 | A compact, adjustable weight for targeted muscle workouts. Price: $59.99.
+  Resistance Bands | Strength | $15.00 | Set of colorful bands for light to moderate resistance workouts. Price: $15.00.
+
+=== Step 2: create the agent (Azure AI Search tool + local price plugin) ===
+Created agent: asst_8JtHiuwTupLYPgoL4oGvLHHh
+
+=== Step 3: ask the agent ===
+
+# User: Which items are best for strength training?
+# Agent: Here are some recommended items for strength training:
+
+1. **Adjustable Dumbbell** - A compact, adjustable weight ideal for targeted muscle workouts. **Price: $59.99**.
+  
+2. **Resistance Bands** - This set includes colorful bands that provide light to moderate resistance for various workouts. **Price: $15.00**.
+
+These options would help you effectively engage in strength training.
+
+Please note that I'm not providing medical advice.
+  Tools offered in run run_f0VBssuoS0Ml4oELSqTivlU9 (RunStatus.COMPLETED): ['azure_ai_search', 'FitnessCatalogPlugin-find_items_under']
+  Tool calls:
+  - azure_ai_search input: search("best strength training equipment")
+    azure_ai_search output: {'summary': 'Retrieved 2 documents.', 'metadata': {'urls': ['doc_0', 'doc_1'], 'titles': ['doc_0', 'doc_1'], 'get_urls': ['https://<search-service>.search.windows.net/indexes/fitness-sk-index/docs/1?api-version=2024-07-01&$select=FitnessItemID,Name,Category,Description', 'https://<search-service>.search.windows.net/indexes/fitness-sk-index/docs/4?api-version=2024-07-01&$select=FitnessItemID,Name,Category,Description'], 'ids': ['1', '4'], 'command': 'search', 'query_type': 'simple', 'top_k': 5, 'filter': True}}
+
+# User: I need something for cardio under $300. Any suggestions?
+  [plugin] find_items_under(max_price=300.0, category=Cardio) -> 0 item(s)
+# Agent: Unfortunately, I couldn't find any cardio equipment under $300. The closest option is a treadmill priced at $499.00.
+
+If you have any other requirements or a different budget, feel free to let me know! Please remember that I'm not providing medical advice.
+  Tools offered in run run_t160SrX7GjXqU240l7CwjN6p (RunStatus.COMPLETED): ['azure_ai_search', 'FitnessCatalogPlugin-find_items_under']
+  Tool calls:
+  - function FitnessCatalogPlugin-find_items_under({"max_price":300,"category":"Cardio"})
+    output: No products cost $300.00 or less in category Cardio. Cheapest product in Cardio: Treadmill (Cardio): $499.00
+
+=== Cleanup ===
+Deleted thread
+Deleted agent: asst_8JtHiuwTupLYPgoL4oGvLHHh
+Deleted index: fitness-sk-index

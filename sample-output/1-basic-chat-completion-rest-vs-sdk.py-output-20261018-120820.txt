@@ -1,0 +1,82 @@
+Sample output of 2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py
+Run on 2026-10-18 12:08 with: uv run python 2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py
+Real endpoints, resource names and GUIDs are replaced with placeholders such as <resource-name> and <id>; agent, thread and message IDs are kept.
+--------------------------------------------------------------------------------
+Endpoint: https://<resource-name>.openai.azure.com/
+API version: 2024-08-01-preview
+Model deployment: gpt-4o-mini
+User: Give me three quick tips to stay active during a busy workday.
+
+================================================================================
+1. REST: requests.post
+================================================================================
+POST https://<resource-name>.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-08-01-preview
+Headers: Authorization: Bearer <Entra ID token, hidden>, Content-Type: application/json
+Body: {
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are FitChat GPT, a friendly fitness assistant. Remind users you're not a medical professional."
+    },
+    {
+      "role": "user",
+      "content": "Give me three quick tips to stay active during a busy workday."
+    }
+  ],
+  "max_tokens": 200,
+  "temperature": 0.7
+}
+
+HTTP 200 in 3.24 s
+  apim-request-id: <id>
+  x-request-id: <id>
+  x-ms-region: East US 2
+  x-ratelimit-remaining-requests: 1999
+  x-ratelimit-remaining-tokens: 199955
+Response JSON keys: ['choices', 'created', 'id', 'model', 'object', 'prompt_filter_results', 'routing', 'service_tier', 'system_fingerprint', 'usage']
+
+Assistant: Absolutely! Here are three quick tips to help you stay active during a busy workday:
+
+1. **Take Short Breaks:** Set a timer to remind yourself to take a 5-minute break every hour. Use this time to stand, stretch, or take a quick walk around the office to keep your blood flowing.
+
+2. **Desk Exercises:** Incorporate simple exercises at your desk, like seated leg lifts, chair squats, or shoulder shrugs. These can help you stay active without needing a lot of space or time.
+
+3. **Opt for Active Commuting:** If possible, walk or bike to work, or park farther away from the entrance. Alternatively, take the stairs instead of the elevator to sneak in some extra movement during your day.
+
+Remember, staying active is all about finding little ways to move throughout your day. And just a reminder, I'm not a medical professional, so if you have any health concerns, it's always best to consult with one. Enjoy staying active!
+
+================================================================================
+2. SDK: openai AzureOpenAI client
+================================================================================
+client.chat.completions.with_raw_response.create(model='gpt-4o-mini', messages=..., **{'max_tokens': 200, 'temperature': 0.7})
+
+HTTP 200 in 3.66 s  (request sent to https://<resource-name>.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-08-01-preview)
+  apim-request-id: <id>
+  x-request-id: <id>
+  x-ms-region: East US 2
+  x-ratelimit-remaining-requests: 1999
+  x-ratelimit-remaining-tokens: 199955
+Parsed into: openai.types.chat.chat_completion.ChatCompletion
+
+Assistant: Absolutely! Here are three quick tips to help you stay active during a busy workday:
+
+1. **Take Short Breaks**: Set a timer to remind you to stand up and stretch or take a quick walk every hour. Even a 5-minute break can help refresh your mind and get your blood flowing.
+
+2. **Incorporate Movement into Your Tasks**: If you can, try walking during phone calls or meetings. You can also use a standing desk or do calf raises while you work at your desk.
+
+3. **Use Your Commute Wisely**: If you can, walk or bike to work, or park farther away to get in a few extra steps. If you take public transport, consider getting off a stop early and walking the rest of the way.
+
+Remember, staying active is key, but always listen to your body, and if you have any health concerns, consult a medical professional!
+
+================================================================================
+Side by side
+================================================================================
+                                REST         SDK
+HTTP status                      200         200
+latency (s)                     3.24        3.66
+prompt tokens                     45          45
+completion tokens                200         185
+answer length (chars)            924         802
+Same prompt tokens show both sides sent the same request; the answers differ because temperature > 0.
+
+Check: PASS  both calls returned an answer

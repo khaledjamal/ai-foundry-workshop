@@ -1,0 +1,163 @@
+"""Read-only setup check for the labs, the script version of the three 1-introduction notebooks.
+
+The notebooks troubleshoot DefaultAzureCredential, create the project client and list models and connections. This
+script does the same checks in one go, without calling any model, so it costs nothing:
+  1. which lab settings are set in 2-notebooks/.env (names only, values are never printed),
+  2. Entra ID sign-in: a token for Azure AI services from DefaultAzureCredential (`az login` locally),
+  3. the Foundry project: its model deployments and connections, through AIProjectClient,
+  4. that every *_DEPLOYMENT_NAME setting names an existing deployment and the Bing connection exists,
+  5. Azure AI Search: the key works and the index names can be listed.
+Exits with 1 if sign-in, the project or a required setting fails; optional labs only get a warning.
+
+Run from the project root:
+    uv run python 1-introduction/check-setup.py
+"""
+
+import os
+from datetime import UTC, datetime
+from pathlib import Path
+
+from azure.ai.projects import AIProjectClient
+from azure.core.credentials import AzureKeyCredential
+from azure.identity import DefaultAzureCredential
+from azure.search.documents.indexes import SearchIndexClient
+from dotenv import load_dotenv
+
+COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
+ENV_FILE = Path(__file__).resolve().parent.parent / "2-notebooks" / ".env"
+# Settings per lab group; "required" groups fail the check when a setting is missing, the others only warn.
+SETTINGS = [
+    ("chat, agents (required)", True, ["AZURE_AI_SERVICES_ENDPOINT", "OPENAI_ENDPOINT", "OPENAI_API_VERSION"]),
+    (
+        "embeddings, RAG, AI Search agent",
+        False,
+        ["EMBEDDING_MODEL_DEPLOYMENT_NAME", "AZURE_AI_SEARCH_ENDPOINT", "AZURE_AI_SEARCH_API_KEY"],
+    ),
+    ("evaluation judge model", False, ["OPENAI_DEPLOYMENT_NAME"]),
+    ("Grounding with Bing", False, ["GROUNDING_WITH_BING_CONNECTION_NAME"]),
+    ("Azure Functions MCP", False, ["AZURE_FUNCTIONS_MCP_URL", "AZURE_FUNCTIONS_MCP_KEY"]),
+    ("image scripts", False, ["IMAGE_EMBEDDING_MODEL_DEPLOYMENT_NAME", "IMAGE_MODEL_DEPLOYMENT_NAME"]),
+    ("Phi-4", False, ["PHI_MODEL_DEPLOYMENT_NAME", "PHI_REASONING_MODEL_DEPLOYMENT_NAME"]),
+    ("DeepSeek", False, ["DEEPSEEK_MODEL_DEPLOYMENT_NAME"]),
+]
+
+
+def print_section(title):
+    print()
+    print("=" * 80)
+    print(title)
+    print("=" * 80)
+
+
+def get_project_endpoint():
+    direct_endpoint = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+    if direct_endpoint:
+        return direct_endpoint.rstrip("/")
+    services_endpoint = os.environ["AZURE_AI_SERVICES_ENDPOINT"].rstrip("/")
+    project_name = os.environ["AZURE_AI_PROJECT_NAME"]
+    return f"{services_endpoint}/api/projects/{project_name}"
+
+
+def main():
+    checks = []  # (status, message) with status PASS, WARN or FAIL
+
+    print_section(f"1. Settings in {ENV_FILE.parent.name}/{ENV_FILE.name}")
+    if not ENV_FILE.exists():
+        print(f"Missing: {ENV_FILE} (copy 2-notebooks/.env.example)")
+        raise SystemExit(1)
+    load_dotenv(ENV_FILE)
+    for group, required, names in SETTINGS:
+        missing = [name for name in names if not os.getenv(name)]
+        status = "PASS" if not missing else ("FAIL" if required else "WARN")
+        print(f"  {status}  {group}: " + (f"missing {', '.join(missing)}" if missing else "all set"))
+        checks.append((status, f"settings for {group}"))
+    project_set = bool(os.getenv("AZURE_AI_PROJECT_ENDPOINT") or os.getenv("AZURE_AI_PROJECT_NAME"))
+    print(
+        f"  {'PASS' if project_set else 'FAIL'}  Foundry project: "
+        + ("set" if project_set else "missing AZURE_AI_PROJECT_NAME (or AZURE_AI_PROJECT_ENDPOINT)")
+    )
+    checks.append(("PASS" if project_set else "FAIL", "Foundry project setting"))
+    if not project_set:
+        report(checks)
+    model = os.getenv("MODEL_DEPLOYMENT_NAME") or "gpt-4o-mini"
+
+    print_section("2. Sign-in (DefaultAzureCredential)")
+    credential = DefaultAzureCredential()
+    try:
+        token = credential.get_token(COGNITIVE_SERVICES_SCOPE)
+        expires = datetime.fromtimestamp(token.expires_on, tz=UTC)
+        print(f"  Token for Azure AI services received, valid until {expires:%Y-%m-%d %H:%M} UTC")
+        checks.append(("PASS", "sign-in"))
+    except Exception as exc:
+        print(f"  Sign-in failed: {exc}\n  Run `az login` and try again.")
+        checks.append(("FAIL", "sign-in"))
+        report(checks)
+
+    print_section("3. Foundry project")
+    endpoint = get_project_endpoint()
+    print(f"  Project endpoint: {endpoint}")
+    try:
+        with AIProjectClient(endpoint=endpoint, credential=credential) as project:
+            deployments = list(project.deployments.list())
+            connections = list(project.connections.list())
+    except Exception as exc:
+        print(f"  Could not read the project: {exc}")
+        checks.append(("FAIL", "project access"))
+        report(checks)
+    checks.append(("PASS", "project access"))
+    print(f"  Deployments ({len(deployments)}):")
+    for deployment in deployments:
+        sku = getattr(deployment.sku, "name", "") if getattr(deployment, "sku", None) else ""
+        print(
+            f"    {deployment.name:26} {deployment.model_publisher or '':10} {deployment.model_name} "
+            f"{deployment.model_version or ''} {sku}"
+        )
+    print(f"  Connections ({len(connections)}):")
+    for connection in connections:
+        print(f"    {connection.name:40} {connection.type}")
+
+    print_section("4. Settings that name deployments and connections")
+    deployment_names = {deployment.name for deployment in deployments}
+    lab_names = [name for _, _, names in SETTINGS for name in names if name.endswith("_DEPLOYMENT_NAME")]
+    named = {"MODEL_DEPLOYMENT_NAME": model}
+    named.update({name: os.environ[name] for name in lab_names if os.getenv(name)})
+    for name, value in sorted(named.items()):
+        found = value in deployment_names
+        status = "PASS" if found else ("FAIL" if name == "MODEL_DEPLOYMENT_NAME" else "WARN")
+        print(f"  {status}  {name}={value}" + ("" if found else " (no deployment with that name)"))
+        checks.append((status, f"deployment for {name}"))
+    bing = os.getenv("GROUNDING_WITH_BING_CONNECTION_NAME")
+    if bing:
+        found = bing in {connection.name for connection in connections}
+        print(f"  {'PASS' if found else 'WARN'}  GROUNDING_WITH_BING_CONNECTION_NAME names a project connection")
+        checks.append(("PASS" if found else "WARN", "Bing connection"))
+
+    print_section("5. Azure AI Search")
+    search_endpoint, search_key = os.getenv("AZURE_AI_SEARCH_ENDPOINT"), os.getenv("AZURE_AI_SEARCH_API_KEY")
+    if search_endpoint and search_key:
+        try:
+            names = list(SearchIndexClient(search_endpoint, AzureKeyCredential(search_key)).list_index_names())
+            print(f"  Key works; {len(names)} index(es): {', '.join(names) or '(none)'}")
+            checks.append(("PASS", "Azure AI Search"))
+        except Exception as exc:
+            print(f"  Could not list indexes: {exc}")
+            checks.append(("WARN", "Azure AI Search"))
+    else:
+        print("  Skipped (AZURE_AI_SEARCH_ENDPOINT or AZURE_AI_SEARCH_API_KEY not set)")
+    report(checks)
+
+
+def report(checks):
+    print_section("Summary")
+    for status in ("FAIL", "WARN"):
+        for check_status, message in checks:
+            if check_status == status:
+                print(f"  {status}  {message}")
+    failed = any(status == "FAIL" for status, _ in checks)
+    passed = sum(1 for status, _ in checks if status == "PASS")
+    print(f"  {passed} passed, {sum(1 for s, _ in checks if s == 'WARN')} warnings, {'FAIL' if failed else 'OK'}")
+    raise SystemExit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,124 @@
+"""Image embeddings part of the embeddings lab (2-embeddings.ipynb, section 4) as a script, on Cohere embed-v-4-0.
+
+The notebook embedded hand-xray.png with Cohere-embed-v3-english through the azure-ai-inference SDK. That SDK was a
+beta that Microsoft retired on 2026-08-26, and the openai SDK has no image embeddings, so this version calls the
+Foundry models REST API directly with requests and an Entra ID token (no API key). It replaces an earlier script,
+old-image_embeddings_cohere.py.
+
+It goes one step further than the notebook's "print a vector": embed-v-4-0 puts images and text in one vector space,
+so it embeds the X-ray image and three short captions and ranks the captions by cosine similarity to the image:
+  1. POST {AZURE_AI_SERVICES_ENDPOINT}/models/images/embeddings  the image as a base64 data URL, input_type document
+  2. POST {AZURE_AI_SERVICES_ENDPOINT}/models/embeddings         the captions, input_type query
+Exits with 1 unless both calls succeed and the X-ray caption ranks first.
+
+Settings from 2-notebooks/.env: AZURE_AI_SERVICES_ENDPOINT, IMAGE_EMBEDDING_MODEL_DEPLOYMENT_NAME (default
+embed-v-4-0), IMAGE_EMBEDDING_API_VERSION (default 2024-05-01-preview). Paid: two small calls, well under $0.01 per
+run (text about $0.12 per 1M tokens; the image is billed as tokens too, printed after the call).
+
+Run from the project root:
+    uv run python 2-notebooks/1-chat_completion/2-embeddings-image-embeddings.py [--image PATH]
+"""
+
+import argparse
+import base64
+import json
+import math
+import os
+import time
+from pathlib import Path
+
+import requests
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from dotenv import load_dotenv
+
+COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
+DEFAULT_IMAGE = Path(__file__).resolve().parent / "hand-xray.png"
+# The first caption describes the image; the check expects it to rank first.
+CAPTIONS = [
+    "An X-ray image of a human hand",
+    "A bowl of fresh fruit and vegetables",
+    "A person jogging in a park",
+]
+
+
+def require_env(name):
+    value = os.getenv(name)
+    if not value:
+        raise ValueError(f"Required environment variable is not set: {name}")
+    return value
+
+
+def post_embeddings(url, api_version, token, body, shown_body):
+    """POST one embeddings request; return (seconds, response JSON). Prints the request with the image shortened."""
+    print(f"POST {url}?api-version={api_version}")
+    print(f"Body: {json.dumps(shown_body)}")
+    start = time.perf_counter()
+    response = requests.post(
+        url, params={"api-version": api_version}, json=body, headers={"Authorization": f"Bearer {token}"}, timeout=60
+    )
+    seconds = time.perf_counter() - start
+    print(f"HTTP {response.status_code} in {seconds:.2f} s")
+    if not response.ok:
+        raise RuntimeError(f"Embeddings call failed: HTTP {response.status_code}: {response.text[:500]}")
+    return seconds, response.json()
+
+
+def show_vector(label, vector):
+    sample = f"[{vector[0]:.4f}, {vector[1]:.4f}, ..., {vector[-2]:.4f}, {vector[-1]:.4f}]"
+    print(f"  {label}: length {len(vector)}, {sample}")
+
+
+def cosine_similarity(a, b):
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
+    return dot / (math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b)))
+
+
+def main():
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+    parser = argparse.ArgumentParser(description="Embed an image and captions with Cohere embed-v-4-0, rank captions")
+    parser.add_argument("--model", default=os.getenv("IMAGE_EMBEDDING_MODEL_DEPLOYMENT_NAME") or "embed-v-4-0")
+    parser.add_argument("--image", type=Path, default=DEFAULT_IMAGE, help="PNG image (default: hand-xray.png)")
+    args = parser.parse_args()
+
+    endpoint = require_env("AZURE_AI_SERVICES_ENDPOINT").rstrip("/")
+    api_version = os.getenv("IMAGE_EMBEDDING_API_VERSION") or "2024-05-01-preview"
+    print(f"Endpoint: {endpoint}/models")
+    print(f"Model deployment: {args.model}")
+    image_bytes = args.image.read_bytes()
+    print(f"Image: {args.image.name} ({len(image_bytes):,} bytes)")
+
+    token = get_bearer_token_provider(DefaultAzureCredential(), COGNITIVE_SERVICES_SCOPE)()
+
+    print("\n1. Image embedding")
+    data_url = f"data:image/png;base64,{base64.b64encode(image_bytes).decode()}"
+    image_body = {"model": args.model, "input": [{"image": data_url}], "input_type": "document"}
+    shown = {**image_body, "input": [{"image": f"data:image/png;base64,<{len(data_url):,} characters>"}]}
+    _, image_result = post_embeddings(f"{endpoint}/models/images/embeddings", api_version, token, image_body, shown)
+    image_vector = image_result["data"][0]["embedding"]
+    show_vector("image", image_vector)
+    print(f"  usage: {image_result.get('usage')}")
+
+    print("\n2. Caption embeddings")
+    text_body = {"model": args.model, "input": CAPTIONS, "input_type": "query"}
+    _, text_result = post_embeddings(f"{endpoint}/models/embeddings", api_version, token, text_body, text_body)
+    caption_vectors = [item["embedding"] for item in sorted(text_result["data"], key=lambda item: item["index"])]
+    for caption, vector in zip(CAPTIONS, caption_vectors, strict=True):
+        show_vector(repr(caption), vector)
+    print(f"  usage: {text_result.get('usage')}")
+
+    print("\n3. Captions ranked by cosine similarity to the image")
+    scores = [
+        (cosine_similarity(image_vector, vector), caption)
+        for caption, vector in zip(CAPTIONS, caption_vectors, strict=True)
+    ]
+    ranked = sorted(scores, reverse=True)
+    for rank, (score, caption) in enumerate(ranked, start=1):
+        print(f"  {rank}. {score:.4f}  {caption}")
+
+    passed = ranked[0][1] == CAPTIONS[0]
+    print(f"\nCheck: {'PASS' if passed else 'FAIL'}  the X-ray caption is the closest to the image")
+    raise SystemExit(0 if passed else 1)
+
+
+if __name__ == "__main__":
+    main()

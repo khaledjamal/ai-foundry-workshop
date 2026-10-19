@@ -1,203 +1,176 @@
-# Azure AI Foundry Workshop
+# Azure AI Foundry Agents, Rebuilt and Measured
 
-<div align="center">
+![Python 3.13](https://img.shields.io/badge/python-3.13-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+[![lint](https://github.com/khaledjamal/ai-foundry-workshop/actions/workflows/lint.yml/badge.svg)](https://github.com/khaledjamal/ai-foundry-workshop/actions/workflows/lint.yml)
 
-[📦Prerequisites](#-prerequisites) | [🚀Quick Start](#-quick-start) | [🤖Overview](#-overview) | [📔Workshop Content](#-workshop-content) | [🧩Project Structure](#-project-structure) | [❓Support](#-support) | [🤝Contributing](#-contributing)
+I built AI agents on Azure AI Foundry (now
+[Microsoft Foundry](https://learn.microsoft.com/azure/foundry/what-is-foundry)) in Python: a shopping agent that searches
+a product catalog and filters by price, web-grounded agents, an agent that calls a remote MCP server I deployed on
+Azure Functions, safety red-teaming and quality evaluation, and agents with Semantic Kernel and AutoGen. Each has a
+recorded run, and the [findings](docs/findings.md) explain the issues I found, why they happened and how I fixed them.
+It started from Microsoft's [Azure AI Foundry workshop](https://github.com/Azure/ai-foundry-workshop), which I moved to
+the current SDKs; the Bing, Web Search and MCP agents run on the new agents API, the others on the classic one.
 
-</div>
+[Findings](docs/findings.md) · [Labs](#labs) · [Setup](#setup)
 
+## Highlights
 
-## 🤖 Overview
+- **An Azure Function app as a remote MCP server for a Foundry agent.** Flex Consumption (scales to zero), called by
+  an agent on the new agents API, with the key in a project connection and each tool call approved. Found and fixed
+  503 errors caused by one request at a time per instance.
+  [Full write-up](docs/findings.md#azure-functions-as-a-remote-mcp-server)
+- **A shopping agent that answers price questions from the catalog.** At first it said prices weren't specified: the
+  Azure AI Search tool passes only the text fields of each product to the model, so the numeric `Price` never
+  arrived. Fixed by indexing the price as text and adding a price-filter tool (a real `Price le <max>` query), built
+  both as a Semantic Kernel plugin and as an Agent Service function tool.
+  [Full write-up](docs/findings.md#shopping-agent-prices-never-reached-the-model)
+- **Red-teaming an agent with Microsoft's attack simulators.** The test agent refused the jailbreak attacks. The first
+  run hid two failures behind a success message (a dropped reply, and an answer without sources scored 5/5 for
+  groundedness); the script now reports both and fails the section.
+  [Full write-up](docs/findings.md#red-teaming-an-agent-with-attack-simulators)
+- **A web-grounded agent that cites current, official sources.** At first gpt-4o-mini wrote its own Bing query with
+  the wrong year ("... news 2023") and presented a 2023 study as recent; today's date and a preference for official
+  sources in the instructions fixed it. [Full write-up](docs/findings.md#a-web-grounded-agent-searched-for-2023-news)
+- **Honest run status, no keys in code.** Most agent scripts exit with 1 when a run doesn't complete, instead of always
+  printing "successfully". Model and project calls sign in with Microsoft Entra ID; the Azure AI Search and MCP keys
+  come from `.env` or project connections, never from code.
+  [Full write-up](docs/findings.md#honest-run-status-no-keys-in-code)
 
-A hands-on workshop that guides you through building intelligent apps and AI agents on top of Azure AI Foundry, with fun examples related to health and dietary advice. You will:
-- Learn Azure AI Foundry fundamentals
-- Set up authentication and project configuration
-- Deploy and test AI models
-- Build AI agents (health advisor examples)
-- Implement health calculations and dietary planning
-- Evaluate agent performance and monitor quality attributes
-- Deploy an end-to-end AI native sample app that incorporates all these capabilities and design patterns
+The shopping agent in its [recorded run](sample-output/5-agents-aisearch.py-output-20261018-204747.txt):
 
-> **Duration**: 4-5 hours  
-> **Focus**: Hands-on exercises, interactive notebooks, practical examples, end-to-end project
+```text
+Question: I need something for cardio under $300, any suggestions?
+Tool calls:
+  - function find_items_under({"max_price":300,"category":"Cardio"})
+    output: No products cost $300.00 or less in category Cardio. Cheapest product in Cardio: Treadmill (Cardio): $499.00
 
-## 🎥 Workshop Overview Video
+ASSISTANT:
+Currently, there are no cardio products available for $300 or less. The closest option is a treadmill priced at
+$499. If you want to consider increasing your budget or looking into alternative categories, please let me know!
+```
 
-Watch our overview video to get a comprehensive understanding of the workshop:
-[![Azure AI Foundry Workshop Overview](https://img.youtube.com/vi/0bGLgmZJ6DE/0.jpg)](https://youtu.be/0bGLgmZJ6DE)
+## How it fits together
 
-## 📸 Visuals
+```mermaid
+flowchart LR
+    S["Lab scripts<br/>(Python 3.13, uv)"] -->|"token via az login<br/>(DefaultAzureCredential)"| E["Microsoft Entra ID"]
+    S --> P["Azure AI Foundry project"]
+    P --> M["Model deployments<br/>gpt-4o-mini, gpt-4o, text-embedding-3-small,<br/>embed-v-4-0, gpt-image-2, Phi-4, Phi-4-reasoning,<br/>DeepSeek-V4-Flash"]
+    P --> A["Foundry Agent Service<br/>classic API (azure-ai-projects 1.x)<br/>and new API (2.x)"]
+    P --> V["Evaluation and safety evaluators"]
+    A --> T1["Code Interpreter, File Search"]
+    A --> T2["Azure AI Search index"]
+    A --> T3["Grounding with Bing, Web Search"]
+    A --> T4["Azure Functions MCP server<br/>(Flex Consumption)"]
+    S -->|"RAG labs"| T2
+    S -->|"traces"| O["Application Insights<br/>(OpenTelemetry)"]
+```
 
-### Sections Overview
-<img src="./3-ai-native-e2e-sample/assets/sections.png" width="70%" />
-*Figure 1: Overview of different sections in this workshop.*
+| Area | Built with |
+|---|---|
+| Azure services | Azure AI Foundry (models, Agent Service, evaluation), Azure AI Search, Grounding with Bing, Azure Functions (Flex Consumption), Application Insights |
+| Agent SDKs | `azure-ai-projects` 1.0.0 with `azure-ai-agents` 1.1.0 (classic agents API); `azure-ai-projects` 2.8.0 (new agents API, Responses API) |
+| Models and search | `openai` 3.x (Azure OpenAI v1 endpoint), `azure-search-documents` 12.0.0, Cohere `embed-v-4-0` over REST |
+| Quality | `azure-ai-evaluation` 1.18.8 (evaluators, attack simulators), OpenTelemetry with `azure-monitor-opentelemetry` 1.8.11 |
+| Frameworks | Semantic Kernel 1.45.0, AutoGen 0.7.5 |
+| MCP | the Azure Functions MCP extension (`azure-functions` 2.3.0, `@app.mcp_tool()`) for the server; the `mcp` Python SDK for the test client |
+| Sign-in and tooling | `azure-identity` 1.26.0 (Microsoft Entra ID), uv, ruff |
 
-### End-to-End Sample UI
-<img src="./3-ai-native-e2e-sample/assets/ui.png" width="70%" />
-*Figure 2: User interface of the end-to-end AI native sample project.*
+## Labs
 
----
+Each script has a recorded run; the original notebooks stay next to the scripts, each with a note pointing to its
+script. Every lab's command, what each script cleans up and the generated image are in
+[docs/setup.md](docs/setup.md#labs).
 
-## 📦 Prerequisites    
+| Lab | What it shows | Sample output |
+|---|---|---|
+| [Setup check](1-introduction/check-setup.py) | read-only check of settings, sign-in, deployments and connections; no model call | [output](sample-output/check-setup.py-output-20261018-172359.txt) |
+| [Chat completion](2-notebooks/1-chat_completion/1-basic-chat-completion-azure-openai.py) | the same calls through `openai.AzureOpenAI` and through the Foundry project client | [output](sample-output/1-basic-chat-completion-azure-openai.py-output-20261016-070614.txt) |
+| [Chat: REST vs SDK](2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py) | one chat request sent by hand with `requests` and through the `openai` SDK, side by side | [output](sample-output/1-basic-chat-completion-rest-vs-sdk.py-output-20261018-120820.txt) |
+| [Embeddings](2-notebooks/1-chat_completion/2-embeddings-azure-openai.py) | text embeddings with `text-embedding-3-small` | [output](sample-output/2-embeddings-azure-openai.py-output-20261014-094054.txt) |
+| [Image embeddings](2-notebooks/1-chat_completion/2-embeddings-image-embeddings.py) | Cohere `embed-v-4-0`: an X-ray image and text captions in one vector space | [output](sample-output/2-embeddings-image-embeddings.py-output-20261018-133654.txt) |
+| [Image generation](2-notebooks/1-chat_completion/2-embeddings-image-generation.py) | `gpt-image-2` through the Azure OpenAI v1 endpoint with an Entra ID token | [output](sample-output/2-embeddings-image-generation.py-output-20261018-133622.txt) |
+| [Basic RAG](2-notebooks/1-chat_completion/3-basic-rag-azure-openai.py) | vector index in Azure AI Search, answers grounded in the top matches | [output](sample-output/3-basic-rag-azure-openai.py-output-20261014-094211.txt) |
+| [Phi-4 vs gpt-4o-mini](2-notebooks/1-chat_completion/4-phi-4.py) | Phi-4, Phi-4-reasoning and gpt-4o-mini on the same prompts: answers, tokens, time and cost | [output](sample-output/4-phi-4.py-output-20261018-164134.txt) |
+| [DeepSeek thinking off vs on](2-notebooks/1-chat_completion/5-deep-seek-v4-flash.py) | DeepSeek-V4-Flash with and without thinking (`reasoning_effort`) | [output](sample-output/5-deep-seek-v4-flash.py-output-20261018-170548.txt) |
+| [Agent basics](2-notebooks/2-agent_service/1-basics.py) | Foundry Agent Service: agent, thread, messages, run | [output](sample-output/1-basics.py-output-20261014-094247.txt) |
+| [Code Interpreter](2-notebooks/2-agent_service/2-code_interpreter.py) | agent analyzes a CSV and returns a chart file | [output](sample-output/2-code_interpreter.py-output-20261018-142926.txt) |
+| [File Search](2-notebooks/2-agent_service/3-file-search.py) | vector store over Markdown files, answers with file citations | [output](sample-output/3-file-search.py-output-20261014-101408.txt) |
+| [Grounding with Bing](2-notebooks/2-agent_service/4-bing_grounding.py) | new agents API agent with Bing grounding and numbered web citations | [output](sample-output/4-bing_grounding.py-output-20261018-114459.txt) |
+| [Web Search](2-notebooks/2-agent_service/4-web_search.py) | the same questions with the built-in `WebSearchTool`, no extra resource | [output](sample-output/4-web_search.py-output-20261018-144147.txt) |
+| [Agent + Azure AI Search](2-notebooks/2-agent_service/5-agents-aisearch.py) | product search tool plus a local price function tool | [output](sample-output/5-agents-aisearch.py-output-20261018-204747.txt) |
+| [Agent + Azure Functions MCP server](2-notebooks/2-agent_service/6-agents-az-functions-mcp.py) | MCP tool to a Function app, key from a project connection, each call approved | [output](sample-output/6-agents-az-functions-mcp.py-output-20261017-114003.txt) |
+| [Observability](2-notebooks/3-quality_attributes/1-observability.py) | OpenTelemetry traces to the console or to Application Insights | [output](sample-output/1-observability.py-output-20261016-005619.txt) |
+| [Evaluation](2-notebooks/3-quality_attributes/2-evaluation.py) | `azure-ai-evaluation`: F1, plus relevance and groundedness judged by a model | [output](sample-output/2-evaluation.py-output-20261014-103533.txt) |
+| [GenAI Ops](2-notebooks/3-quality_attributes/3-e2e-genai-ops.py) | safety evaluators, direct attacks against a test agent, indirect attack generation, quality and RAG evaluation, all traced | [rerun after the fix](sample-output/3-e2e-genai-ops.py-output-20261016-031924.txt), [full run before it](sample-output/3-e2e-genai-ops.py-output-20261016-030225.txt) |
+| [Semantic Kernel agent](2-notebooks/4-frameworks/1-rag-sk-agents-aisearch.py) | `AzureAIAgent` with a `@kernel_function` price plugin | [output](sample-output/1-rag-sk-agents-aisearch.py-output-20261015-121028.txt) |
+| [AutoGen multi-agent RAG](2-notebooks/4-frameworks/2-autogen-multi-agent-rag.py) | retriever and responder agents, embedding search over tips | [output](sample-output/2-autogen-multi-agent-rag.py-output-20261015-165725.txt) |
+| [AutoGen wellness agents](2-notebooks/4-frameworks/3-autogen-personalized-heart-rate.py) | heart-rate summary from sample wearable data, then two agents plan workouts; not medical advice | [output](sample-output/3-autogen-personalized-heart-rate.py-output-20261015-165744.txt) |
 
-Before starting the workshop, ensure you have:
+## Model choice
 
-- [Python 3.10](https://www.python.org/downloads/) or higher installed
-- An active Azure subscription with access to [Azure AI Foundry](https://ai.azure.com)
-- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) installed
-- [Git](https://git-scm.com/downloads) installed
-- [VS Code](https://code.visualstudio.com/), [GitHub Codespaces](https://github.com/features/codespaces), or [Jupyter Notebook](https://jupyter.org/install) environment
-- Basic Python programming knowledge
-- Model deployment and [AI Search](https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search) connection configured in Azure AI Foundry
+gpt-4o-mini is the default: on the Azure AI Search agent it made the same tool calls and gave the same grounded
+answers as gpt-4o at about 1/17 of the per-token price (one run on two questions, not a benchmark). Two newer models,
+gpt-5.4-mini and gpt-5.4-nano, failed on the classic agents API once the Azure AI Search tool was attached, which
+matches Microsoft's documented tool limits for gpt-5-family models on classic agents. The classic agents API retires on
+2027-03-31, before gpt-4o-mini (2027-04-14), so the classic labs need to move to the new agents API by then. The other
+comparisons (Phi-4, DeepSeek-V4-Flash, Web Search vs Grounding with Bing) are in the [findings](docs/findings.md).
 
----
+## Setup
 
-## 🚀 Quick Start
+Every lab's setup, settings and troubleshooting are in [docs/setup.md](docs/setup.md). For the first lab you need
+Python 3.13, [uv](https://docs.astral.sh/uv/), the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
+and an Azure AI Foundry project with gpt-4o-mini, gpt-4o and text-embedding-3-small deployments and a connected Azure
+AI Search resource (the free tier is enough). The commands are for Linux or macOS (on Windows, use WSL).
 
-1. **Clone the repo**:
-   ```bash
-   git clone https://github.com/Azure/ai-foundry-workshop.git
-   cd ai-foundry-workshop
-   ```
+```bash
+git clone https://github.com/khaledjamal/ai-foundry-workshop.git
+cd ai-foundry-workshop
+uv venv --python 3.13
+uv pip install -r requirements-labs.txt          # the versions the labs were tested with
+cp 2-notebooks/.env.example 2-notebooks/.env    # then fill in your values; keep the file out of git
+az login
+uv run python 1-introduction/check-setup.py     # read-only: sign-in, deployments, connections, settings
+uv run python 2-notebooks/1-chat_completion/1-basic-chat-completion-azure-openai.py
+```
 
-2. **Install uv**:
-   ```bash
-   # Unix/Linux/macOS
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+The other labs also need two more Python environments (some packages conflict) and a few more deployments and
+resources, all described in [docs/setup.md](docs/setup.md).
 
-   # Windows (PowerShell)   
-   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-   ```
+## Repository layout
 
-3. **Create & activate a virtual environment**:
-   ```bash
-   uv venv
-   source .venv/bin/activate  # Windows: .venv\Scripts\activate
-   ```
+```
+1-introduction/           original setup notebooks + check-setup.py (read-only setup check)
+2-notebooks/
+  1-chat_completion/      chat, embeddings, RAG: notebooks + scripts
+  2-agent_service/        Foundry Agent Service labs: notebooks + scripts
+  3-quality_attributes/   observability, evaluation, GenAI Ops: notebooks + scripts
+  4-frameworks/           Semantic Kernel and AutoGen: notebooks + scripts (+ requirements.txt for the SK lab)
+docs/findings.md          issues found with cause and fix, model comparisons
+docs/setup.md             every lab's command, full setup, settings, troubleshooting
+requirements-labs.txt     tested versions for the main lab environment
+requirements-agents-v2.txt tested versions for the new agents API labs (Bing, Web Search, Functions MCP)
+sample-output/            redacted console output of a recorded run of each lab script, plus the generated image
+scripts/delete-agents.py  removes leftover agents by name from the Foundry project
+scripts/probe-mcp-http.py raw MCP requests over HTTP, to debug the Functions MCP server
+README.upstream.md        Microsoft's original README
+```
 
-4. **Set up Azure AI Foundry**:
+The notebooks, with their images and data files, are Microsoft's originals; each starts with a note pointing to its
+script. Microsoft's files this rebuild doesn't use (the end-to-end sample app, the documentation site and the
+original setup files) were removed after the import; they are in the
+[original repository](https://github.com/Azure/ai-foundry-workshop). `README.upstream.md` describes the original
+workshop and its setup, which partly uses older APIs (for example the project connection string).
 
-   a. **Create Project and Deploy Resources**:
-      1. Go to [Azure AI Foundry](https://ai.azure.com)
-      2. Create a new AI Hub and Project using the AI Foundry Wizard
-      3. Deploy required models:
-         - GPT models(gpt-4o, gpt-4o-mini) for chat/completion (**set TPM to max** to avoid issues with Agents notebooks)
-         - Embedding model for vector search
-         - Ensure the model is deployed in `Global-Standard` or `DataZone-Standard`
-      4. Set up connections:
-         - Configure [Grounding with Bing](https://learn.microsoft.com/en-us/azure/ai-services/agents/how-to/tools/bing-grounding?view=azure-python-preview&tabs=python&pivots=overview) connection
-         - Configure Azure AI Search connection
-      5. Add your user account to the `Azure AI Developer` role from Azure AI Foundry Management Portal
+## Author
 
-   b. **Configure Environment Variables**:
-      ```bash
-      cp .env.example .env
-      ```
-      Update `.env` with your Azure AI Foundry values:
-      - `PROJECT_CONNECTION_STRING`: Your project connection string from Azure ML workspace
-      - `MODEL_DEPLOYMENT_NAME`: Your model deployment name
-      - `EMBEDDING_MODEL_DEPLOYMENT_NAME`: Your embedding model deployment name
-      - `TENANT_ID`: Your tenant ID from Azure portal
-      - `BING_CONNECTION_NAME`: Your Bing search connection name
-      - `SERVERLESS_MODEL_NAME`: Your serverless model name
+Khaled Jamal · [LinkedIn](https://www.linkedin.com/in/khaledjamal1)
 
-      > **Note**: The model specified in `MODEL_DEPLOYMENT_NAME` must be supported by Azure AI Agents Service or Assistants API. See [supported models](https://learn.microsoft.com/en-us/azure/ai-services/agents/concepts/model-region-support?tabs=python#azure-openai-models) for details. For Grounding with Bing Search, you need to use `gpt-4o-mini` model.
+## Credits and license
 
-5. **Install dependencies**:
-   ```bash
-   # Install core Azure AI SDKs and Jupyter requirements
-   uv pip install azure-identity azure-ai-projects azure-ai-inference[opentelemetry] azure-search-documents azure-ai-evaluation azure-monitor-opentelemetry
-
-   # Install Jupyter requirements
-   uv pip install ipykernel jupyterlab notebook
-
-   # Register the kernel with Jupyter
-   python -m ipykernel install --user --name=.venv --display-name="Python (.venv)"
-
-   # Install additional requirements (optional - for deploying repo or running mkdocs)
-   uv pip install -r requirements.txt
-   ```
-
-   > **Note**: If you encounter kernel errors in VS Code, try:
-   > 1. Select kernel: Click "Select Kernel" > "Python Environments" > "Python (.venv)"
-   > 2. If kernel is not listed, run `python -m ipykernel install --user --name=.venv` again, or use the "Create New Kernel" wizard in VS Code to create a new Python environment
-   > 3. Reload VS Code if needed
-
-6. **Choose your notebook environment**:
-
-   **Option A: VS Code**
-   - Install [VS Code Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-   - Install either:
-     - [Jupyter extension](https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter) for .ipynb files
-     - [Polyglot Notebooks extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode) for .dib files
-   - Open any notebook and select your Python kernel (.venv)
-
-   **Option B: GitHub Codespaces**
-   - Click "Code" > "Create codespace" on the repository
-   - Wait for environment setup
-   - Notebooks will be ready to run
-
-   **Option C: Jupyter Lab/Notebook**
-   ```bash
-   # Install Jupyter if you haven't already
-   uv pip install jupyterlab notebook
-
-   # Start Jupyter Lab (recommended)
-   jupyter lab
-
-   # Or start Jupyter Notebook
-   jupyter notebook
-   ```
-
-7. **Follow the Learning Path**:
-    1. **Introduction** (`1-introduction/`)
-       - `1-authentication.ipynb`: Set up your Azure credentials
-       - `2-environment_setup.ipynb`: Configure your environment
-       - `3-quick_start.ipynb`: Learn basic operations
-
-    2. **Main Workshop** (`2-notebooks/`)
-       - Chat Completion & RAG (`1-chat_completion/`)
-       - Agent Development (`2-agent_service/`)
-       - Quality Attributes (`3-quality_attributes/`)
-
----
-
-## 📔 Workshop Learning Path
-
-Follow these notebooks in sequence to complete the workshop:
-
-### 1. Introduction (`1-introduction/`)
-| Notebook | Description |
-|----------|-------------|
-| [1. Authentication](1-introduction/1-authentication.ipynb) | Set up Azure credentials and access |
-| [2. Environment Setup](1-introduction/2-environment_setup.ipynb) | Configure your development environment |
-| [3. Quick Start](1-introduction/3-quick_start.ipynb) | Learn basic Azure AI Foundry operations |
-
-### 2. Main Workshop (`2-notebooks/`)
-| Topic | Notebooks |
-|-------|-----------|
-| **Chat Completion & RAG** | • [Chat Completion & RaG](2-notebooks/1-chat_completion/) |
-| **Agent Development** | • [Agent Development](2-notebooks/2-agent_service/) |
-| **Quality Attributes** | • [Observability & Evaluations](2-notebooks/3-quality_attributes/) |
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to:
-- Submit bug reports and feature requests
-- Submit pull requests
-- Follow our coding standards
-- Participate in code reviews
-
----
-
-## ❓ Support
-
-If you need help or have questions:
-
----
-
-
-
-
+Based on [Azure/ai-foundry-workshop](https://github.com/Azure/ai-foundry-workshop) by Microsoft, imported unchanged
+at upstream commit `273c24c` as this repository's first commit; my work is in the commits after it, which also
+remove the original files these labs don't use. The workshop notebooks, their images and data files, and the original
+README ([`README.upstream.md`](README.upstream.md)) are Microsoft's work. MIT License, Copyright (c) Microsoft Corporation; see [`LICENSE.md`](LICENSE.md), which also
+covers my additions.

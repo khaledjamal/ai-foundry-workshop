@@ -1,0 +1,23 @@
+# Lint, format and compile checks for the lab scripts on every push and pull request (settings in ruff.toml).
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff==0.17.1
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: python -m compileall -q 1-introduction 2-notebooks scripts

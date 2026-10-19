@@ -1,0 +1,190 @@
+# Findings
+
+Issues I found while building the labs, why they happened and how I fixed them, and what the model comparisons
+showed. Each comes from a recorded run; the full outputs are in [`sample-output/`](../sample-output/). Back to the
+[README](../README.md).
+
+- [Shopping agent: prices never reached the model](#shopping-agent-prices-never-reached-the-model)
+- [Red-teaming an agent with attack simulators](#red-teaming-an-agent-with-attack-simulators)
+- [Azure Functions as a remote MCP server](#azure-functions-as-a-remote-mcp-server)
+- [A web-grounded agent searched for 2023 news](#a-web-grounded-agent-searched-for-2023-news)
+- [Honest run status, no keys in code](#honest-run-status-no-keys-in-code)
+- [Search by meaning instead of keywords (AutoGen)](#search-by-meaning-instead-of-keywords-autogen)
+- [Model choice: gpt-4o vs gpt-4o-mini](#model-choice-gpt-4o-vs-gpt-4o-mini)
+- [Newer models need the new agents API](#newer-models-need-the-new-agents-api)
+- [Web Search vs Grounding with Bing](#web-search-vs-grounding-with-bing)
+- [Phi-4 and Phi-4-reasoning vs gpt-4o-mini](#phi-4-and-phi-4-reasoning-vs-gpt-4o-mini)
+- [DeepSeek-V4-Flash, thinking off vs on](#deepseek-v4-flash-thinking-off-vs-on)
+- [Classic and new agents API](#classic-and-new-agents-api)
+
+## Shopping agent: prices never reached the model
+
+Asked for "cardio equipment under $300", the agent said prices weren't specified. Its run steps showed the cause: the
+Azure AI Search tool fetches only the text fields of each product
+(`$select=FitnessItemID,Name,Category,Description`), so the numeric `Price` never reaches the model. Fixed by adding
+the price to the indexed text, plus a local price-filter tool (`find_items_under`, a real `Price le <max>` query)
+built two ways: as a Semantic Kernel plugin and as an Agent Service function tool. The second tool then made the agent
+answer one question from general knowledge instead of searching the catalog; stricter instructions fixed it, and both
+scripts now print every tool call, so a skipped search shows in the output. From the
+[recorded run](../sample-output/5-agents-aisearch.py-output-20261018-204747.txt):
+
+```text
+Question: I need something for cardio under $300, any suggestions?
+Tool calls:
+  - function find_items_under({"max_price":300,"category":"Cardio"})
+    output: No products cost $300.00 or less in category Cardio. Cheapest product in Cardio: Treadmill (Cardio): $499.00
+
+ASSISTANT:
+Currently, there are no cardio products available for $300 or less. The closest option is a treadmill priced at
+$499. If you want to consider increasing your budget or looking into alternative categories, please let me know!
+```
+
+## Red-teaming an agent with attack simulators
+
+The GenAI Ops lab sends Microsoft-generated attacks (requests to rewrite text on harmful topics, each also sent with a
+role-play jailbreak added) to a test agent on gpt-4o-mini. In the clean run the agent refused both jailbreak versions
+and toned down the plain requests. The first run hid two failures behind a success message: the simulator silently
+drops errors raised by the agent target, so one conversation lost its reply; and the RAG section searched a new index
+before indexing finished, so one answer had no sources, yet the judge model still scored it 5/5 for groundedness. The
+script now reports target errors, waits until the index is searchable, and fails the section if either happens.
+Recorded runs: the [full run before the fix](../sample-output/3-e2e-genai-ops.py-output-20261016-030225.txt)
+(conversation 1 has no reply; question 1 shows an empty `Retrieved:` yet groundedness 5.0) and the
+[rerun of those two sections after it](../sample-output/3-e2e-genai-ops.py-output-20261016-031924.txt) (both jailbreak
+versions refused, all four turns answered, sources retrieved).
+
+The direct attacks go to the test agent. The indirect attack (XPIA) section, as in the notebook, only generates
+attacks against a fixed-reply target, so no model sees them: the lab shows nothing about the agent's resistance to
+indirect prompt injection.
+
+Like the original notebook, the lab sends harmful sample text and Microsoft-generated attack prompts to the Foundry
+safety service and to its own test agent. It keeps the notebook's small sizes (2 attacks per simulator), leaves prompt
+content out of the traces, and writes the full conversations only to its output folder (`runs/` is git-ignored). The
+safety checks are billed on their own meter ($0.02 per 1K input and $0.06 per 1K output tokens in East US 2,
+[Azure Retail Prices API](https://learn.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices),
+checked October 2026); a full run is estimated at well under $1. The copyrighted-text check runs only in East US 2.
+
+## Azure Functions as a remote MCP server
+
+The workshop's queue-based Functions tool needs a setup this project doesn't have, so the lab became an MCP server on
+Azure Functions (Flex Consumption, scales to zero), called by an agent on the new agents API. The Function key sits in
+a Foundry project connection, not in the agent, and the script approves each tool call. Two findings: capped at one
+instance, the server returned 503 because Python on Flex handles one request at a time per instance and the MCP
+client's open stream took it (fixed with per-instance concurrency); and the agent added warm-up timings the tool
+never returned (fixed in its instructions). See the
+[lab README](../2-notebooks/2-agent_service/6-agents-az-functions-mcp/README.md). Recorded run:
+[output](../sample-output/6-agents-az-functions-mcp.py-output-20261017-114003.txt).
+
+## A web-grounded agent searched for 2023 news
+
+With Grounding with Bing, the model writes the search query itself. Asked for news on intermittent fasting,
+gpt-4o-mini searched for "... news 2023" and presented a 2023 study as recent; the WHO sugar answer cited a blog
+instead of who.int. Putting today's date in the instructions and asking for official health sources first fixed both
+in the next run (queries with the current month, who.int cited). The script also builds the Bing search link from each
+query and numbers the citations, as Bing's display requirements ask. Recorded run after the fix:
+[output](../sample-output/4-bing_grounding.py-output-20261018-114459.txt).
+
+## Honest run status, no keys in code
+
+The agent scripts (basics, File Search, Azure AI Search, AutoGen, GenAI Ops) check how each agent run actually ended
+and exit with 1 when it didn't complete, instead of always printing "successfully" (for example
+[`1-basics.py`](../2-notebooks/2-agent_service/1-basics.py)). The Code Interpreter script prints a failed run's status
+and error but doesn't exit with 1. Model and project calls sign in with Microsoft Entra ID (`DefaultAzureCredential`
+via `az login`). The only keys are the Azure AI Search admin key and the Function app's MCP key; they come from `.env`
+or from project connections (the Semantic Kernel lab takes the search key from the project's Azure AI Search
+connection, and the MCP agent gets its key from a project connection), never from code.
+
+## Search by meaning instead of keywords (AutoGen)
+
+The AutoGen lab's keyword search couldn't connect "quick exercises" with "10-minute HIIT workout" and returned every
+tip. Embedding search (`text-embedding-3-small`, cosine similarity) finds the right tips, and the agents now answer
+only from them and name their sources. Recorded run:
+[output](../sample-output/2-autogen-multi-agent-rag.py-output-20261015-165725.txt).
+
+## Model choice: gpt-4o vs gpt-4o-mini
+
+On the Azure AI Search agent, with the same code, questions and index, gpt-4o-mini made the same tool calls and gave
+the same grounded answers as gpt-4o at about 1/17 of the per-token price, so it is the default here (list prices per
+1M input / output tokens, Global deployment in East US 2: gpt-4o $2.50 / $10, gpt-4o-mini $0.15 / $0.60;
+[Azure Retail Prices API](https://learn.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices),
+checked October 2026):
+
+| | gpt-4o | gpt-4o-mini |
+|---|---|---|
+| "Good for strength training?": searched the catalog | yes, 2 products with prices | yes, the same 2 products with prices |
+| "Cardio under $300?": called the price tool | yes, `find_items_under(300, Cardio)` | yes, `find_items_under(300, Cardio)` |
+| Answer | nothing under $300; closest is the treadmill at $499 | the same |
+| Cost per run | about $0.03–0.06 | well under $0.01 |
+
+One run per model on two questions: a quick comparison, not a benchmark. Recorded run on gpt-4o-mini:
+[output](../sample-output/5-agents-aisearch.py-output-20261018-204747.txt). To use another deployment for one run, set
+it on the command line:
+
+```bash
+MODEL_DEPLOYMENT_NAME=gpt-4o uv run python 2-notebooks/2-agent_service/5-agents-aisearch.py
+```
+
+## Newer models need the new agents API
+
+I tried gpt-5.4-mini and gpt-5.4-nano on the same agent. With the Azure AI Search tool attached, every run failed with
+a generic `server_error` ("Sorry, something went wrong."), no tokens used and no run steps. The same models worked as
+plain agents and with only the function tool. The error doesn't give a reason, but it matches Microsoft's
+[model support page for classic agents](https://learn.microsoft.com/azure/foundry-classic/agents/concepts/model-region-support)
+(checked October 2026): gpt-5-family models there can use only the code interpreter and file search tools, and models
+later than gpt-5 need the new agents API. This result covers these two models with the Azure AI Search tool; the page
+lists the gpt-4.1 family without such limits.
+
+So these labs stay on gpt-4o-mini (2024-07-18). The deadline that matters comes first from the service: classic agents
+retire on 2027-03-31, two weeks before gpt-4o-mini and the gpt-4.1 family (2027-04-14, Microsoft's
+[model retirement schedule](https://learn.microsoft.com/azure/foundry/openai/concepts/model-retirement-schedule),
+checked October 2026). The classic labs need to move to the new agents API (`azure-ai-projects` 2.x) by then, and a
+newer model comes with that move.
+
+## Web Search vs Grounding with Bing
+
+On the same three questions (gpt-4o-mini, one search each, nearly the same queries), the Web Search agent cited 11
+sources against 7 and cited WHO for the sugar question just as the Bing agent did. It read about twice the input
+tokens (16K vs 9K), which costs under a cent on gpt-4o-mini. The search fee is likely about the same, but that is an
+estimate: Microsoft publishes no separate Web Search rate, so the script counts searches at the Grounding with Bing
+rate of [$14 per 1,000](https://www.microsoft.com/en-us/bing/apis/grounding-pricing) (checked October 2026). This is one run on three questions, not a benchmark: it shows no
+quality gap either way, and Web Search needs no extra resource or connection, which makes it the simpler default for a
+new agent. Recorded runs: [Web Search](../sample-output/4-web_search.py-output-20261018-144147.txt),
+[Grounding with Bing](../sample-output/4-bing_grounding.py-output-20261018-114459.txt).
+
+## Phi-4 and Phi-4-reasoning vs gpt-4o-mini
+
+All three solved the pace question (6:00 per km, 18 seconds faster) and gave similar training advice. In the recorded
+run gpt-4o-mini was the fastest (11.5 s for the three prompts against 27 s for Phi-4) and cost about the same ($0.0004
+vs $0.0006: Phi-4 is slightly cheaper per token, $0.125 / $0.50 per 1M input / output tokens against $0.15 / $0.60,
+but used more tokens; list prices from the
+[Azure Retail Prices API](https://learn.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices),
+checked October 2026), so the small Phi model brought no gain here. Phi-4-reasoning wrote about 7 times the output tokens of
+gpt-4o-mini (4,524 vs 654) and took 103 s, roughly 9 times as long, to reach the same answers: on these three prompts,
+reasoning added only time and cost. This is one run, not a benchmark; the script reports whether each pace answer is
+right, but fails only when a model returns no answer. Recorded run:
+[output](../sample-output/4-phi-4.py-output-20261018-164134.txt).
+
+Phi-4-reasoning's thinking can't be separated from its answer on Azure. The model card's system prompt asks for the
+thinking between `<think>` tags, but the endpoint strips those tags (they are special tokens), leaves the message's
+`reasoning` field empty and rejects `skip_special_tokens=False`, so the thinking and the answer arrive as one text.
+
+## DeepSeek-V4-Flash, thinking off vs on
+
+DeepSeek-R1 retired on Azure on 2026-08-13, and Microsoft's
+[model retirement schedule](https://learn.microsoft.com/azure/foundry/openai/concepts/model-retirement-schedule)
+(checked October 2026) lists DeepSeek-V4-Pro as its replacement; this lab uses the cheaper V4-Flash. V4-Flash
+answers without thinking unless the request sets `reasoning_effort`. Then the thinking comes back in the message's `reasoning_content` field, apart from the answer (the
+DeepSeek API's own `thinking` field is rejected by the Azure endpoint). Both modes got the pace question right;
+thinking added 248 words of working for it and took 4.8 s instead of 1.4 s. The three prompts cost $0.002 without
+thinking and $0.003 with it. Per 1M input / output tokens V4-Flash costs $0.19 / $0.51, about a seventh and a tenth of
+R1's $1.35 / $5.40 (Global deployment in East US 2,
+[Azure Retail Prices API](https://learn.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices),
+checked October 2026). Recorded run: [output](../sample-output/5-deep-seek-v4-flash.py-output-20261018-170548.txt).
+
+## Classic and new agents API
+
+Like Microsoft's notebooks, most agent labs (basics, Code Interpreter, File Search, Azure AI Search, observability,
+GenAI Ops, Semantic Kernel) use the classic Foundry Agent Service API: agents, threads and runs through
+`azure-ai-projects` 1.x. Microsoft retires it on 2027-03-31 (see the
+[model support page for classic agents](https://learn.microsoft.com/azure/foundry-classic/agents/concepts/model-region-support),
+checked October 2026). The Grounding with Bing, Web Search and Azure Functions MCP labs already use the new agents API
+(`azure-ai-projects` 2.x: versioned agents called through the Responses API).

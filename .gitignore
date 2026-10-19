@@ -9,6 +9,23 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+
+#matches all files or directories named etc, no matter where they are.
+**/etc
+
+# Local-only files: notes, scratch copies, exports and anything not meant for version control
+private/
+
+# Saved commands and outputs of local runs
+runs/
+
+# Images made by the image generation script (default --output-dir)
+generated-images/
+
+# Charts and evaluation results written by the scripts (--output-dir in the README commands)
+charts/
+evaluation-results/
+
 build/
 develop-eggs/
 dist/
@@ -77,6 +94,9 @@ venv/
 ENV/
 
 .env
+
+# Azure Functions local settings (may hold connection strings)
+local.settings.json
 
 # MkDocs documentation
 site*/

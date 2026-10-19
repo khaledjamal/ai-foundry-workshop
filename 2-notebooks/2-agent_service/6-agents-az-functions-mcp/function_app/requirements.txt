@@ -1,0 +1,2 @@
+# Installed by Azure during remote build. Do not add azure-functions-worker; the platform manages the worker.
+azure-functions==2.3.0

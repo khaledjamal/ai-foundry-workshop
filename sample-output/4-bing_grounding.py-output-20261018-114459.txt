@@ -1,0 +1,75 @@
+Sample output of 2-notebooks/2-agent_service/4-bing_grounding.py
+Run on 2026-10-18 11:44 with: source ../../.venv-agents-v2/bin/activate && python 2-notebooks/2-agent_service/4-bing_grounding.py
+Real endpoints, resource names and GUIDs are replaced with placeholders such as <resource-name> and <id>; agent, thread and message IDs are kept.
+--------------------------------------------------------------------------------
+Project endpoint: https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
+Model deployment: gpt-4o-mini
+Bing connection: <bing-connection-name> (GroundingWithBingSearch)
+
+Agent created: name=health-bing-agent version=1
+
+User: What are some new HIIT workout trends I should know about?
+Response (status completed):
+  bing_grounding_call  query='2026 HIIT workout trends'  status=completed
+  bing_grounding_call_output  status=completed
+  message (answer, printed below)
+  (tokens: input 2951, output 258)
+
+Agent: Here are some emerging HIIT workout trends for 2026 that you might find interesting:
+
+1. **Hybrid Training**: Combining strength and endurance in structured workouts, making routines more versatile and engaging[1].
+
+2. **Calisthenics**: Bodyweight exercises like pull-ups and handstands are gaining popularity for their focus on functional strength and minimal equipment[2].
+
+3. **Remote Personal Training**: There's a significant rise in online workouts, allowing for personalized HIIT sessions tailored to individual goals[3].
+
+4. **Wearable Technology**: Smart devices are becoming integral to HIIT, helping manage intensity and track performance in real-time[4][1].
+
+5. **Zone 2 Cardio**: This involves training at a specific heart rate zone that optimizes fat burning, often integrated into HIIT routines[1].
+
+These trends reflect a shift towards more adaptable and tech-driven fitness solutions. Remember, it's always a good idea to consult with a fitness professional to find what best suits your needs!
+Sources:
+  [1] Fitness Trends 2026: What Actually Works and What's Just Hype: https://theworkoutmag.com/training/fitness-trends-2026-evidence-based-guide
+  [2] 2026 Fitness Trends: What's Blowing Up (and How to Use Them for Your ...: https://www.fitnessai.com/blog/2026-fitness-trends-whats-blowing-up-and-how-to-use-them-for-your-summer-bod
+  [3] Fitness Trends in 2026: What’s Hot and What’s Not: https://mirrorsdelivered.com/blogs/industry-news-trends/fitness-trends-whats-hot-and-whats-not
+  [4] The Future of Fitness: ACSM Announces Top Trends for 2026: https://www.acsm.org/top-fitness-trends-2026/
+Bing search: https://www.bing.com/search?q=2026+HIIT+workout+trends
+
+User: What's the current WHO recommendation for sugar intake?
+Response (status completed):
+  bing_grounding_call  query='current WHO recommendation for sugar intake 2026'  status=completed
+  bing_grounding_call_output  status=completed
+  message (answer, printed below)
+  (tokens: input 1569, output 129)
+
+Agent: The World Health Organization (WHO) recommends that free sugars make up less than 10% of total daily energy intake. A further reduction to below 5% (approximately 25 grams or about 6 teaspoons) is suggested for additional health benefits. This recommendation aims to reduce the risk of non-communicable diseases (NCDs) and dental issues[1].
+
+I am not a medical professional, so it's a good idea to consult a healthcare provider for personalized advice.
+Sources:
+  [1] Guideline: sugars intake for adults and children: https://www.who.int/publications/i/item/9789241549028/
+Bing search: https://www.bing.com/search?q=current+WHO+recommendation+for+sugar+intake+2026
+
+User: Any news on intermittent fasting for weight management?
+Response (status completed):
+  bing_grounding_call  query='intermittent fasting weight management news October 2026'  status=completed
+  bing_grounding_call_output  status=completed
+  message (answer, printed below)
+  (tokens: input 4111, output 205)
+
+Agent: Recent evidence from a February 2026 Cochrane systematic review has raised important questions regarding the effectiveness of intermittent fasting (IF) for weight management. The review analyzed data from 22 randomized clinical trials with nearly 2,000 participants and found that intermittent fasting does not lead to greater weight loss compared to standard calorie restriction methods[1][2]. 
+
+While intermittent fasting has been popularized for its perceived metabolic advantages, the review suggests that it is not superior to conventional dieting for weight loss purposes. However, it does not dismiss the strategy entirely; some individuals may still find value in using IF for various health benefits[1][2].
+
+For anyone considering intermittent fasting as a weight management tool, it's crucial to consult a healthcare professional to tailor approaches according to individual health needs and circumstances.
+Sources:
+  [1] Intermittent Fasting: Doctor Perspectives & 2026 Evidence: https://topdoctormagazine.com/doctor/intermittent-fasting-doctor-perspectives-evidence/
+  [2] The 2026 Fasting Study That Changed Everything: https://fastingpioneer.com/2026-fasting-study-changed-everything/
+Bing search: https://www.bing.com/search?q=intermittent+fasting+weight+management+news+October+2026
+
+Agent version deleted: health-bing-agent v1
+Total tokens: input 8631, output 592
+Bing searches: 3 (about $0.042)
+Checks:
+  PASS  answered with sources and a Bing search URL: What are some new HIIT workout trends I should know about?
+  PASS  answered with sources and a Bing search URL: What's the current WHO recommendation for sugar intake?
+  PASS  answered with sources and a Bing search URL: Any news on intermittent fasting for weight management?

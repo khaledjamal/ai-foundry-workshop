@@ -1,0 +1,117 @@
+"""Basic chat completion lab (1-basic-chat-completion.ipynb) as a script.
+
+Connection method: AIProjectClient from azure-ai-projects, created with the Foundry project
+endpoint. The project client hands back an AzureOpenAI client through get_openai_client(),
+using an Entra ID token from the Azure CLI login.
+
+Run from the project root:
+    uv run python 2-notebooks/1-chat_completion/1-basic-chat-completion-project-client.py
+"""
+
+import os
+from pathlib import Path
+
+from azure.ai.projects import AIProjectClient
+from azure.identity import DefaultAzureCredential
+from dotenv import load_dotenv
+
+FITNESS_SYSTEM_PROMPT = (
+    "You are FitChat GPT, a friendly fitness assistant.\n"
+    "Always remind users: I'm not a medical professional.\n"
+    "Answer with empathy and disclaimers."
+)
+
+TRAINER_SYSTEM_TEMPLATE = (
+    "You are FitChat GPT, an AI personal trainer for {name}.\n"
+    "Your user wants to achieve: {goal}.\n"
+    "Remind them you're not a medical professional. Offer friendly advice."
+)
+
+
+def print_section(title):
+    print()
+    print("=" * 80)
+    print(title)
+    print("=" * 80)
+
+
+def load_environment():
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if not env_path.exists():
+        raise FileNotFoundError(f".env file not found: {env_path}")
+    load_dotenv(env_path)
+    print(f"Loaded .env from: {env_path}")
+
+
+def require_env(name):
+    value = os.getenv(name)
+    if not value:
+        raise ValueError(f"Required environment variable is not set: {name}")
+    return value
+
+
+def get_project_endpoint():
+    direct_endpoint = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+    if direct_endpoint:
+        return direct_endpoint.rstrip("/")
+    services_endpoint = require_env("AZURE_AI_SERVICES_ENDPOINT").rstrip("/")
+    project_name = require_env("AZURE_AI_PROJECT_NAME")
+    return f"{services_endpoint}/api/projects/{project_name}"
+
+
+def create_clients():
+    project_endpoint = get_project_endpoint()
+    api_version = require_env("OPENAI_API_VERSION")
+
+    project_client = AIProjectClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
+    client = project_client.get_openai_client(api_version=api_version)
+
+    print("Connection method: AIProjectClient.get_openai_client()")
+    print(f"Project endpoint:  {project_endpoint}")
+    print(f"Model endpoint:    {client.base_url}  (chosen by the project client)")
+    print(f"API version:       {api_version}")
+    return project_client, client
+
+
+def chat(client, model, system_prompt, user_input):
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_input},
+        ],
+        max_tokens=400,
+        temperature=0.7,
+    )
+    usage = response.usage
+    print(f"(tokens: prompt {usage.prompt_tokens}, completion {usage.completion_tokens})")
+    return response.choices[0].message.content
+
+
+def main():
+    print_section("BASIC CHAT COMPLETION - AIProjectClient")
+    load_environment()
+    model = require_env("OPENAI_DEPLOYMENT_NAME")
+    print(f"Model deployment:  {model}")
+    project_client, client = create_clients()
+
+    with project_client:
+        print_section("1. Chat with a system prompt")
+        question = "How can I start a beginner workout routine at home?"
+        print(f"User: {question}")
+        print(f"Assistant: {chat(client, model, FITNESS_SYSTEM_PROMPT, question)}")
+
+        print_section("2. Prompt template with fill-ins")
+        system_prompt = TRAINER_SYSTEM_TEMPLATE.format(
+            name="Jordan",
+            goal="increase muscle tone and endurance",
+        )
+        question = "What kind of home exercise do you recommend for a busy schedule?"
+        print(f"User: {question}")
+        print(f"Assistant: {chat(client, model, system_prompt, question)}")
+
+    print_section("DONE")
+
+
+if __name__ == "__main__":
+    main()
