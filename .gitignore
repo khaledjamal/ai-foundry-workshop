@@ -1,20 +1,18 @@
-# Byte-compiled / optimized / DLL files
+# Secrets and local settings
+.env
+local.settings.json
+
+# Python virtual environments
+.venv/
+venv/
+
+# Python and tool caches
 __pycache__/
 *.py[cod]
-*$py.class
+.ruff_cache/
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
-
-#matches all files or directories named etc, no matter where they are.
-**/etc
-
-# Local-only files: notes, scratch copies, exports and anything not meant for version control
-private/
+# Notebooks
+.ipynb_checkpoints
 
 # Saved commands and outputs of local runs
 runs/
@@ -22,130 +20,13 @@ runs/
 # Images made by the image generation script (default --output-dir)
 generated-images/
 
+# BMI analysis images written by the introduction notebook
+1-introduction/bmi_analysis_assistant-*.png
+
 # Charts and evaluation results written by the scripts (--output-dir in the README commands)
 charts/
 evaluation-results/
 
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-node_modules/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-# BMI analysis images in introduction
-1-introduction/bmi_analysis_assistant-*.png
-
-# Installer logs and lock files
-pip-log.txt
-pip-delete-this-directory.txt
-pnpm-lock.yaml
-yarn.lock
-package-lock.json
-.pnpm-store/
-.yarn/
-.yarnrc.yml
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
-.hypothesis/
-
-# Translations
-*.mo
-command
-
-
-# Scrapy stuff:
-.scrapy
-
-# PyBuilder
-target/
-
-# IPython Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# virtualenv
-venv/
-ENV/
-
-.env
-
-# Azure Functions local settings (may hold connection strings)
-local.settings.json
-
-# MkDocs documentation
-site*/
+# Editor and OS files
 .vscode/
-
-# Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-
-# Python virtual environments
-venv/
-.env/
-.venv/
-env/
-ENV/
-
-# Python files
-*.py[cod]
-__pycache__/
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-eggs/
-parts/
-bin/
-var/
-sdist/
-develop-eggs/
-.installed.cfg
-
-lib64/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
-
-appsettings.json
-sample/frontend/.env
-
-.cache/
 .DS_Store
-
-*.lock

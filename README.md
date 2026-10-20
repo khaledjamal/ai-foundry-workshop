@@ -9,8 +9,9 @@ I built AI agents on Azure AI Foundry (now
 a product catalog and filters by price, web-grounded agents, an agent that calls a remote MCP server I deployed on
 Azure Functions, safety red-teaming and quality evaluation, and agents with Semantic Kernel and AutoGen. Each has a
 recorded run, and the [findings](docs/findings.md) explain the issues I found, why they happened and how I fixed them.
-It started from Microsoft's [Azure AI Foundry workshop](https://github.com/Azure/ai-foundry-workshop), which I moved to
-the current SDKs; the Bing, Web Search and MCP agents run on the new agents API, the others on the classic one.
+It started from Microsoft's [Azure AI Foundry workshop](https://github.com/Azure/ai-foundry-workshop): I rebuilt its
+labs as Python scripts on the current SDKs and added the MCP server, the price-filter tool and the Web Search lab. The
+Bing, Web Search and MCP agents run on the new agents API, the others on the classic one.
 
 [Findings](docs/findings.md) · [Labs](#labs) · [Setup](#setup)
 
@@ -19,22 +20,35 @@ the current SDKs; the Bing, Web Search and MCP agents run on the new agents API,
 - **An Azure Function app as a remote MCP server for a Foundry agent.** Flex Consumption (scales to zero), called by
   an agent on the new agents API, with the key in a project connection and each tool call approved. Found and fixed
   503 errors caused by one request at a time per instance.
+  [Server code](2-notebooks/2-agent_service/6-agents-az-functions-mcp/function_app/function_app.py) ·
+  [Agent code](2-notebooks/2-agent_service/6-agents-az-functions-mcp.py) ·
+  [Recorded run](sample-output/6-agents-az-functions-mcp.py-output-20261017-114003.txt) ·
   [Full write-up](docs/findings.md#azure-functions-as-a-remote-mcp-server)
 - **A shopping agent that answers price questions from the catalog.** At first it said prices weren't specified: the
   Azure AI Search tool passes only the text fields of each product to the model, so the numeric `Price` never
   arrived. Fixed by indexing the price as text and adding a price-filter tool (a real `Price le <max>` query), built
   both as a Semantic Kernel plugin and as an Agent Service function tool.
+  [Agent Service code](2-notebooks/2-agent_service/5-agents-aisearch.py) ·
+  [Semantic Kernel code](2-notebooks/4-frameworks/1-rag-sk-agents-aisearch.py) ·
+  [Recorded run](sample-output/5-agents-aisearch.py-output-20261018-204747.txt) ·
   [Full write-up](docs/findings.md#shopping-agent-prices-never-reached-the-model)
 - **Red-teaming an agent with Microsoft's attack simulators.** The test agent refused the jailbreak attacks. The first
   run hid two failures behind a success message (a dropped reply, and an answer without sources scored 5/5 for
   groundedness); the script now reports both and fails the section.
+  [Code](2-notebooks/3-quality_attributes/3-e2e-genai-ops.py) ·
+  [Run before the fix](sample-output/3-e2e-genai-ops.py-output-20261016-030225.txt) ·
+  [Rerun after it](sample-output/3-e2e-genai-ops.py-output-20261016-031924.txt) ·
   [Full write-up](docs/findings.md#red-teaming-an-agent-with-attack-simulators)
 - **A web-grounded agent that cites current, official sources.** At first gpt-4o-mini wrote its own Bing query with
   the wrong year ("... news 2023") and presented a 2023 study as recent; today's date and a preference for official
-  sources in the instructions fixed it. [Full write-up](docs/findings.md#a-web-grounded-agent-searched-for-2023-news)
+  sources in the instructions fixed it.
+  [Code](2-notebooks/2-agent_service/4-bing_grounding.py) ·
+  [Recorded run](sample-output/4-bing_grounding.py-output-20261018-114459.txt) ·
+  [Full write-up](docs/findings.md#a-web-grounded-agent-searched-for-2023-news)
 - **Honest run status, no keys in code.** Most agent scripts exit with 1 when a run doesn't complete, instead of always
   printing "successfully". Model and project calls sign in with Microsoft Entra ID; the Azure AI Search and MCP keys
   come from `.env` or project connections, never from code.
+  [Example code](2-notebooks/2-agent_service/1-basics.py) ·
   [Full write-up](docs/findings.md#honest-run-status-no-keys-in-code)
 
 The shopping agent in its [recorded run](sample-output/5-agents-aisearch.py-output-20261018-204747.txt):
@@ -70,24 +84,27 @@ flowchart LR
 | Area | Built with |
 |---|---|
 | Azure services | Azure AI Foundry (models, Agent Service, evaluation), Azure AI Search, Grounding with Bing, Azure Functions (Flex Consumption), Application Insights |
-| Agent SDKs | `azure-ai-projects` 1.0.0 with `azure-ai-agents` 1.1.0 (classic agents API); `azure-ai-projects` 2.8.0 (new agents API, Responses API) |
-| Models and search | `openai` 3.x (Azure OpenAI v1 endpoint), `azure-search-documents` 12.0.0, Cohere `embed-v-4-0` over REST |
-| Quality | `azure-ai-evaluation` 1.18.8 (evaluators, attack simulators), OpenTelemetry with `azure-monitor-opentelemetry` 1.8.11 |
-| Frameworks | Semantic Kernel 1.45.0, AutoGen 0.7.5 |
-| MCP | the Azure Functions MCP extension (`azure-functions` 2.3.0, `@app.mcp_tool()`) for the server; the `mcp` Python SDK for the test client |
-| Sign-in and tooling | `azure-identity` 1.26.0 (Microsoft Entra ID), uv, ruff |
+| Agent SDKs | `azure-ai-projects` 1.x with `azure-ai-agents` (classic agents API); `azure-ai-projects` 2.x (new agents API, Responses API) |
+| Models and search | `openai` (Azure OpenAI v1 endpoint), `azure-search-documents`, Cohere `embed-v-4-0` over REST |
+| Quality | `azure-ai-evaluation` (evaluators, attack simulators), OpenTelemetry with `azure-monitor-opentelemetry` |
+| Frameworks | Semantic Kernel, AutoGen |
+| MCP | the Azure Functions MCP extension (`azure-functions`, `@app.mcp_tool()`) for the server; the `mcp` Python SDK for the test client |
+| Sign-in and tooling | `azure-identity` (Microsoft Entra ID), uv, ruff |
+
+Exact tested versions are pinned in the requirements files; see
+[docs/setup.md](docs/setup.md#what-the-other-labs-need).
 
 ## Labs
 
 Each script has a recorded run; the original notebooks stay next to the scripts, each with a note pointing to its
-script. Every lab's command, what each script cleans up and the generated image are in
-[docs/setup.md](docs/setup.md#labs).
+script. "(new)" marks the labs the workshop didn't have. Every lab's command, what each script cleans up and the
+generated image are in [docs/setup.md](docs/setup.md#labs).
 
 | Lab | What it shows | Sample output |
 |---|---|---|
 | [Setup check](1-introduction/check-setup.py) | read-only check of settings, sign-in, deployments and connections; no model call | [output](sample-output/check-setup.py-output-20261018-172359.txt) |
 | [Chat completion](2-notebooks/1-chat_completion/1-basic-chat-completion-azure-openai.py) | the same calls through `openai.AzureOpenAI` and through the Foundry project client | [output](sample-output/1-basic-chat-completion-azure-openai.py-output-20261016-070614.txt) |
-| [Chat: REST vs SDK](2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py) | one chat request sent by hand with `requests` and through the `openai` SDK, side by side | [output](sample-output/1-basic-chat-completion-rest-vs-sdk.py-output-20261018-120820.txt) |
+| [Chat: REST vs SDK](2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py) (new) | one chat request sent by hand with `requests` and through the `openai` SDK, side by side | [output](sample-output/1-basic-chat-completion-rest-vs-sdk.py-output-20261018-120820.txt) |
 | [Embeddings](2-notebooks/1-chat_completion/2-embeddings-azure-openai.py) | text embeddings with `text-embedding-3-small` | [output](sample-output/2-embeddings-azure-openai.py-output-20261014-094054.txt) |
 | [Image embeddings](2-notebooks/1-chat_completion/2-embeddings-image-embeddings.py) | Cohere `embed-v-4-0`: an X-ray image and text captions in one vector space | [output](sample-output/2-embeddings-image-embeddings.py-output-20261018-133654.txt) |
 | [Image generation](2-notebooks/1-chat_completion/2-embeddings-image-generation.py) | `gpt-image-2` through the Azure OpenAI v1 endpoint with an Entra ID token | [output](sample-output/2-embeddings-image-generation.py-output-20261018-133622.txt) |
@@ -98,9 +115,9 @@ script. Every lab's command, what each script cleans up and the generated image 
 | [Code Interpreter](2-notebooks/2-agent_service/2-code_interpreter.py) | agent analyzes a CSV and returns a chart file | [output](sample-output/2-code_interpreter.py-output-20261018-142926.txt) |
 | [File Search](2-notebooks/2-agent_service/3-file-search.py) | vector store over Markdown files, answers with file citations | [output](sample-output/3-file-search.py-output-20261014-101408.txt) |
 | [Grounding with Bing](2-notebooks/2-agent_service/4-bing_grounding.py) | new agents API agent with Bing grounding and numbered web citations | [output](sample-output/4-bing_grounding.py-output-20261018-114459.txt) |
-| [Web Search](2-notebooks/2-agent_service/4-web_search.py) | the same questions with the built-in `WebSearchTool`, no extra resource | [output](sample-output/4-web_search.py-output-20261018-144147.txt) |
+| [Web Search](2-notebooks/2-agent_service/4-web_search.py) (new) | the same questions with the built-in `WebSearchTool`, no extra resource | [output](sample-output/4-web_search.py-output-20261018-144147.txt) |
 | [Agent + Azure AI Search](2-notebooks/2-agent_service/5-agents-aisearch.py) | product search tool plus a local price function tool | [output](sample-output/5-agents-aisearch.py-output-20261018-204747.txt) |
-| [Agent + Azure Functions MCP server](2-notebooks/2-agent_service/6-agents-az-functions-mcp.py) | MCP tool to a Function app, key from a project connection, each call approved | [output](sample-output/6-agents-az-functions-mcp.py-output-20261017-114003.txt) |
+| [Agent + Azure Functions MCP server](2-notebooks/2-agent_service/6-agents-az-functions-mcp.py) (new) | MCP tool to a Function app, key from a project connection, each call approved | [output](sample-output/6-agents-az-functions-mcp.py-output-20261017-114003.txt) |
 | [Observability](2-notebooks/3-quality_attributes/1-observability.py) | OpenTelemetry traces to the console or to Application Insights | [output](sample-output/1-observability.py-output-20261016-005619.txt) |
 | [Evaluation](2-notebooks/3-quality_attributes/2-evaluation.py) | `azure-ai-evaluation`: F1, plus relevance and groundedness judged by a model | [output](sample-output/2-evaluation.py-output-20261014-103533.txt) |
 | [GenAI Ops](2-notebooks/3-quality_attributes/3-e2e-genai-ops.py) | safety evaluators, direct attacks against a test agent, indirect attack generation, quality and RAG evaluation, all traced | [rerun after the fix](sample-output/3-e2e-genai-ops.py-output-20261016-031924.txt), [full run before it](sample-output/3-e2e-genai-ops.py-output-20261016-030225.txt) |

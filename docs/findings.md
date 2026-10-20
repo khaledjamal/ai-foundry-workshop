@@ -25,7 +25,12 @@ Azure AI Search tool fetches only the text fields of each product
 the price to the indexed text, plus a local price-filter tool (`find_items_under`, a real `Price le <max>` query)
 built two ways: as a Semantic Kernel plugin and as an Agent Service function tool. The second tool then made the agent
 answer one question from general knowledge instead of searching the catalog; stricter instructions fixed it, and both
-scripts now print every tool call, so a skipped search shows in the output. From the
+scripts now print every tool call, so a skipped search shows in the output.
+
+Why this fix: a search ranked by relevance returns the closest matches, not every product under a budget, and leaves
+the number comparison to the model. The filter query does the comparison in the index, so a budget answer covers every
+product at or under the price, and the tool can name the cheapest product when nothing matches. The price in the
+indexed text still lets the search tool's answers quote prices. From the
 [recorded run](../sample-output/5-agents-aisearch.py-output-20261018-204747.txt):
 
 ```text
@@ -52,6 +57,11 @@ Recorded runs: the [full run before the fix](../sample-output/3-e2e-genai-ops.py
 [rerun of those two sections after it](../sample-output/3-e2e-genai-ops.py-output-20261016-031924.txt) (both jailbreak
 versions refused, all four turns answered, sources retrieved).
 
+Why this fix: the success message came from the simulator, which drops the target's errors, and the judge model
+scores whatever answer it is given. Neither shows that the agent replied or that the search found anything, so the
+script now checks both directly: it counts the answered, blocked and failed turns of each conversation and the sources
+retrieved for each question, and fails the section when a reply or the sources are missing.
+
 The direct attacks go to the test agent. The indirect attack (XPIA) section, as in the notebook, only generates
 attacks against a fixed-reply target, so no model sees them: the lab shows nothing about the agent's resistance to
 indirect prompt injection.
@@ -70,7 +80,12 @@ Azure Functions (Flex Consumption, scales to zero), called by an agent on the ne
 a Foundry project connection, not in the agent, and the script approves each tool call. Two findings: capped at one
 instance, the server returned 503 because Python on Flex handles one request at a time per instance and the MCP
 client's open stream took it (fixed with per-instance concurrency); and the agent added warm-up timings the tool
-never returned (fixed in its instructions). See the
+never returned (fixed in its instructions).
+
+Why this fix: the raw probe ([`scripts/probe-mcp-http.py`](../scripts/probe-mcp-http.py)) sends the same MCP calls as
+plain HTTP requests and opens no stream. It worked while the MCP client's calls failed, which pointed at how the
+server handles concurrent requests, not at the tool code or the agent. Raising the per-instance concurrency fixed it
+and kept the one-instance cap, so the cost stays bounded. See the
 [lab README](../2-notebooks/2-agent_service/6-agents-az-functions-mcp/README.md). Recorded run:
 [output](../sample-output/6-agents-az-functions-mcp.py-output-20261017-114003.txt).
 
