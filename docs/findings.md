@@ -9,6 +9,7 @@ showed. Each comes from a recorded run; the full outputs are in [`sample-output/
 - [Azure Functions as a remote MCP server](#azure-functions-as-a-remote-mcp-server)
 - [A web-grounded agent searched for 2023 news](#a-web-grounded-agent-searched-for-2023-news)
 - [Honest run status, no keys in code](#honest-run-status-no-keys-in-code)
+- [Sign-in waited 1 s for a managed identity that isn't there](#sign-in-waited-1-s-for-a-managed-identity-that-isnt-there)
 - [Search by meaning instead of keywords (AutoGen)](#search-by-meaning-instead-of-keywords-autogen)
 - [Model choice: gpt-4o vs gpt-4o-mini](#model-choice-gpt-4o-vs-gpt-4o-mini)
 - [Newer models need the new agents API](#newer-models-need-the-new-agents-api)
@@ -107,6 +108,19 @@ and error but doesn't exit with 1. Model and project calls sign in with Microsof
 via `az login`). The only keys are the Azure AI Search admin key and the Function app's MCP key; they come from `.env`
 or from project connections (the Semantic Kernel lab takes the search key from the project's Azure AI Search
 connection, and the MCP agent gets its key from a project connection), never from code.
+
+## Sign-in waited 1 s for a managed identity that isn't there
+
+The [HTTP log](setup.md#http-log) showed the same first call in every script, before any lab request:
+`GET http://169.254.169.254/metadata/identity/oauth2/token`, which timed out after 1 s (call #1 in the
+[REST vs SDK output](../sample-output/1-basic-chat-completion-rest-vs-sdk.py-output-20261021-131720.txt)).
+`DefaultAzureCredential` tries its sign-in methods in order, and managed identity, the way code signs in when it runs
+on Azure, comes before the Azure CLI login. On a PC nothing answers that address, so each run waited for the timeout.
+Setting `AZURE_TOKEN_CREDENTIALS=dev` in `.env` limits it to developer sign-ins: the probe is gone, and getting a
+token took 0.56 s instead of 1.55 s.
+
+Why this fix: it is one setting and no code change. Without it, the same scripts still sign in with managed identity
+when they run on Azure, which a hard-coded `AzureCliCredential` would break, along with other developer sign-ins.
 
 ## Search by meaning instead of keywords (AutoGen)
 

@@ -108,6 +108,7 @@ All settings go in `2-notebooks/.env` (start from [`2-notebooks/.env.example`](.
 
 | Variable | Used for |
 |---|---|
+| `AZURE_TOKEN_CREDENTIALS` | `dev`: `DefaultAzureCredential` tries only developer sign-ins such as `az login`, which skips a 1 s managed identity probe on every run ([finding](findings.md#sign-in-waited-1-s-for-a-managed-identity-that-isnt-there)) |
 | `AZURE_AI_SERVICES_ENDPOINT`, `AZURE_AI_PROJECT_NAME` | Foundry project endpoint (or set `AZURE_AI_PROJECT_ENDPOINT` directly) |
 | `OPENAI_ENDPOINT`, `OPENAI_API_VERSION` | Azure OpenAI endpoint of the Foundry resource |
 | `MODEL_DEPLOYMENT_NAME` | chat model for the agent, framework, observability and GenAI Ops labs and the model comparisons (gpt-4o-mini) |
