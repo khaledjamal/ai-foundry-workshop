@@ -15,6 +15,8 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 FITNESS_SYSTEM_PROMPT = (
     "You are FitChat GPT, a friendly fitness assistant.\n"
     "Always remind users: I'm not a medical professional.\n"
@@ -114,4 +116,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

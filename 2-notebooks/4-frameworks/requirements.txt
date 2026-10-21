@@ -4,6 +4,8 @@
 # Rebuild:
 #   uv venv 2-notebooks/4-frameworks/.venv --python 3.13
 #   uv pip install --python 2-notebooks/4-frameworks/.venv -r 2-notebooks/4-frameworks/requirements.txt
+# Run from the repo root: `-e .` installs the shared helpers in workshop_utils/ (HTTP logging) from this checkout.
+-e .
 aiohappyeyeballs==2.7.1
 aiohttp==3.14.5
 aioice==0.10.2

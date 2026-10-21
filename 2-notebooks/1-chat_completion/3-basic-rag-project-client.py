@@ -38,6 +38,8 @@ from azure.search.documents.indexes.models import (
 from azure.search.documents.models import VectorizedQuery
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 DEFAULT_INDEX_NAME = "healthtips-index"
 
 HEALTH_TIPS = [
@@ -244,4 +246,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

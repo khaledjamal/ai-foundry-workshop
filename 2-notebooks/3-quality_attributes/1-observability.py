@@ -34,6 +34,8 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 
+from workshop_utils import http_log
+
 SERVICE_NAME = "observability-lab"
 AGENT_NAME = "health-search-agent"
 VECTOR_STORE_NAME = "health_resources_example"
@@ -311,4 +313,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

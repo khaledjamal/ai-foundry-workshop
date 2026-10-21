@@ -20,6 +20,8 @@ from dotenv import load_dotenv
 from mcp import ClientSession
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
 
+from workshop_utils import http_log
+
 LOCAL_URL = "http://localhost:7071/runtime/webhooks/mcp"
 EXPECTED_TOOLS = {"list_workout_goals", "suggest_workout"}
 
@@ -88,4 +90,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

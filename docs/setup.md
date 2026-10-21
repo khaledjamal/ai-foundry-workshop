@@ -18,7 +18,7 @@ Search tier it costs nothing).
 |---|---|---|---|---|
 | Setup check | [`check-setup.py`](../1-introduction/check-setup.py) | [output](../sample-output/check-setup.py-output-20261018-172359.txt) | read-only check of the three introduction notebooks' steps: settings, Entra ID sign-in, project deployments and connections, Azure AI Search; no model call | `uv run python 1-introduction/check-setup.py` |
 | Chat completion | [`1-basic-chat-completion-azure-openai.py`](../2-notebooks/1-chat_completion/1-basic-chat-completion-azure-openai.py), [`-project-client.py`](../2-notebooks/1-chat_completion/1-basic-chat-completion-project-client.py) | [azure-openai](../sample-output/1-basic-chat-completion-azure-openai.py-output-20261016-070614.txt), [project-client](../sample-output/1-basic-chat-completion-project-client.py-output-20261014-094029.txt) | the same calls through `openai.AzureOpenAI` and through `AIProjectClient.get_openai_client()` | `uv run python 2-notebooks/1-chat_completion/1-basic-chat-completion-azure-openai.py` |
-| Chat: REST vs SDK | [`1-basic-chat-completion-rest-vs-sdk.py`](../2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py) | [output](../sample-output/1-basic-chat-completion-rest-vs-sdk.py-output-20261018-120820.txt) | the same chat request sent by hand with `requests` (URL, headers, JSON body) and through the `openai` SDK, compared side by side (status, latency, tokens, rate-limit headers) | `uv run python 2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py` |
+| Chat: REST vs SDK | [`1-basic-chat-completion-rest-vs-sdk.py`](../2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py) | [output](../sample-output/1-basic-chat-completion-rest-vs-sdk.py-output-20261021-131720.txt) | the same chat request sent by hand with `requests` (URL, headers, JSON body) and through the `openai` SDK; the [HTTP log](#http-log) shows both requests and responses in full, then a table compares status, latency and tokens | `uv run python 2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py` |
 | Embeddings | [`2-embeddings-azure-openai.py`](../2-notebooks/1-chat_completion/2-embeddings-azure-openai.py), [`-project-client.py`](../2-notebooks/1-chat_completion/2-embeddings-project-client.py) | [azure-openai](../sample-output/2-embeddings-azure-openai.py-output-20261014-094054.txt), [project-client](../sample-output/2-embeddings-project-client.py-output-20261014-094058.txt) | text embeddings with `text-embedding-3-small` | `uv run python 2-notebooks/1-chat_completion/2-embeddings-azure-openai.py` |
 | Image embeddings | [`2-embeddings-image-embeddings.py`](../2-notebooks/1-chat_completion/2-embeddings-image-embeddings.py) | [output](../sample-output/2-embeddings-image-embeddings.py-output-20261018-133654.txt) | Cohere `embed-v-4-0` puts an X-ray image and text captions in one vector space; the captions are ranked by cosine similarity to the image. Plain REST calls, because the `azure-ai-inference` SDK the notebook used was retired | `uv run python 2-notebooks/1-chat_completion/2-embeddings-image-embeddings.py` |
 | Image generation | [`2-embeddings-image-generation.py`](../2-notebooks/1-chat_completion/2-embeddings-image-generation.py) | [output](../sample-output/2-embeddings-image-generation.py-output-20261018-133622.txt) | one image from the notebook's prompt on `gpt-image-2` (DALL-E 3 was retired on Azure), through the Azure OpenAI v1 endpoint with an Entra ID token; saved as PNG | `uv run python 2-notebooks/1-chat_completion/2-embeddings-image-generation.py` |
@@ -134,6 +134,46 @@ Foundry project endpoint (these scripts):
   = AZURE_AI_SERVICES_ENDPOINT + /api/projects/ + AZURE_AI_PROJECT_NAME
     (or set AZURE_AI_PROJECT_ENDPOINT directly)
 ```
+
+### HTTP log
+
+Every script calls `http_log.enable()` from [`workshop_utils/http_log.py`](../workshop_utils/http_log.py), which
+prints each HTTP request and response the script sends: method, URL, headers and body, then status, headers and
+body. It hooks the transport of `requests`, `httpx2` and `httpx`, so it also shows the calls the SDKs make (openai,
+the azure-* SDKs, Semantic Kernel, AutoGen, the MCP client). Authorization and key headers, key query parameters and
+token fields are replaced with `<redacted>`; long and binary bodies are shortened. A request and its response share a
+call number:
+
+```text
+--- OUTBOUND REQUEST #1 ---
+> POST https://<resource-name>.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=...
+> Authorization: Bearer <redacted>
+> Content-Type: application/json
+>
+{
+  "messages": [ ... ]
+}
+
+--- OUTBOUND RESPONSE #1 ---
+< 200 OK
+< Content-Type: application/json
+<
+{
+  "choices": [ ... ]
+}
+```
+
+It is set with environment variables on the command line (not in `.env`, which the scripts read after the log
+starts), for example `HTTP_LOG=summary uv run python 1-introduction/check-setup.py`:
+
+| Variable | Values |
+|---|---|
+| `HTTP_LOG` | `full` (default), `summary` (one line per call), `off` |
+| `HTTP_LOG_METRICS` | `false` (default), `true`: time, bytes and token usage per call, and totals at the end |
+| `HTTP_LOG_MAX_BODY` | characters shown of each body, default 8192; the rest is cut with `...more...` |
+| `HTTP_LOG_POLLS` | `short` (default): a repeated GET of the same URL, such as an agent run checked until it ends, is one line with the reply's `status` (`HTTP #7 GET <url> -> 200 OK, status: in_progress`); the first GET of a URL stays in full. `full`: every one in full |
+
+Unit tests against a local server (no Azure): `uv run python -m unittest discover -s tests -v`.
 
 ## Troubleshooting
 

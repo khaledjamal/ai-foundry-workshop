@@ -39,6 +39,8 @@ from dotenv import load_dotenv
 from semantic_kernel.agents import AzureAIAgent, AzureAIAgentThread
 from semantic_kernel.functions import kernel_function
 
+from workshop_utils import http_log
+
 INDEX_NAME = "fitness-sk-index"
 AGENT_NAME = "fitness-sk-agent"
 
@@ -309,4 +311,5 @@ async def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     asyncio.run(main())

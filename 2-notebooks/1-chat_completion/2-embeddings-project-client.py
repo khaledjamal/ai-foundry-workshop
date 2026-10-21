@@ -15,6 +15,8 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 TEXT_PHRASES = [
     "An apple a day keeps the doctor away 🍎",
     "Quick 15-minute HIIT workout routine 🏋️",
@@ -106,4 +108,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

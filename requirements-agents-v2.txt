@@ -4,6 +4,8 @@
 # Rebuild:
 #   uv venv .venv-agents-v2 --python 3.13
 #   uv pip install --python .venv-agents-v2/bin/python -r requirements-agents-v2.txt
+# Run from the repo root: `-e .` installs the shared helpers in workshop_utils/ (HTTP logging) from this checkout.
+-e .
 annotated-types==0.8.0
 anyio==4.15.1
 attrs==26.1.0

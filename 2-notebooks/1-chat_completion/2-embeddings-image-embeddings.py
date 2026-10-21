@@ -31,6 +31,8 @@ import requests
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 DEFAULT_IMAGE = Path(__file__).resolve().parent / "hand-xray.png"
 # The first caption describes the image; the check expects it to rank first.
@@ -121,4 +123,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

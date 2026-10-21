@@ -14,6 +14,8 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 SHOWN_HEADERS = ("content-type", "mcp-session-id", "www-authenticate")
 
 
@@ -60,4 +62,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

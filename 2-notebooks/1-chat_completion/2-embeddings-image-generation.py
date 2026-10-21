@@ -28,6 +28,8 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from workshop_utils import http_log
+
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 # The notebook's prompt (section 5).
 DEFAULT_PROMPT = "A watercolor painting of fresh fruits and vegetables arranged in a heart shape"
@@ -105,4 +107,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

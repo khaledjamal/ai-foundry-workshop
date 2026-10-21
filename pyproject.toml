@@ -1,0 +1,18 @@
+# Makes the shared helpers in workshop_utils/ importable from every lab script. The requirements files install it
+# with `-e .`, so changes take effect without reinstalling. Package versions stay pinned in the requirements files.
+[project]
+name = "workshop-utils"
+version = "0.1.0"
+description = "Shared helpers for the lab scripts: HTTP request and response logging"
+requires-python = ">=3.13"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["workshop_utils"]
+
+# uv: use the existing venv as it is (no lock file, no automatic sync); `uv run python ...` works as before.
+[tool.uv]
+managed = false

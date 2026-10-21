@@ -31,6 +31,8 @@ from azure.ai.projects.models import PromptAgentDefinition, WebSearchTool
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 AGENT_NAME = "health-web-search-agent"
 # The same questions as the Bing lab (4-bing_grounding.py), so the two runs can be compared.
 QUESTIONS = [
@@ -161,4 +163,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

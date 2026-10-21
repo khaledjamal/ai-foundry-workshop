@@ -19,6 +19,8 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 AGENT_NAME = "fun-fit-health-advisor"
 
 HEALTH_ADVISOR_INSTRUCTIONS = """
@@ -134,4 +136,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

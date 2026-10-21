@@ -39,6 +39,8 @@ from azure.ai.projects.models import (
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 AGENT_NAME = "health-bing-agent"
 QUESTIONS = [
     "What are some new HIIT workout trends I should know about?",
@@ -176,4 +178,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

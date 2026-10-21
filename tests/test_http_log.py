@@ -1,0 +1,240 @@
+"""Tests for workshop_utils.http_log against a local HTTP server (no Azure, no cost).
+
+Run from the repo root with the venv that has requests, httpx2 and httpx installed:
+    uv run python -m unittest discover -s tests -v
+"""
+
+import asyncio
+import gzip
+import json
+import re
+import threading
+import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import requests
+
+from workshop_utils import http_log
+
+try:
+    import httpx2
+except ImportError:
+    httpx2 = None
+try:
+    import httpx
+except ImportError:
+    httpx = None
+
+CHAT_REPLY = {
+    "choices": [{"message": {"role": "assistant", "content": "Hello"}}],
+    "usage": {"prompt_tokens": 12, "completion_tokens": 3},
+    "access_token": "secret-token-value",
+}
+SSE_EVENTS = [
+    {"choices": [{"delta": {"content": "Hel"}}]},
+    {"choices": [{"delta": {"content": "lo"}}]},
+    {"choices": [], "usage": {"prompt_tokens": 7, "completion_tokens": 2}},
+]
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def send_body(self, body, content_type, headers=None):
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        if self.path.startswith("/gzip"):
+            body = gzip.compress(json.dumps(CHAT_REPLY).encode())
+            self.send_body(body, "application/json", {"Content-Encoding": "gzip"})
+        elif self.path.startswith("/image"):
+            self.send_body(b"\x89PNG\r\n\x1a\n" + bytes(range(256)) * 4, "image/png")
+        elif self.path.startswith("/long"):
+            self.send_body(b"x" * 5000, "text/plain")
+        elif self.path.startswith("/sse"):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.end_headers()
+            for event in SSE_EVENTS:
+                self.wfile.write(f"data: {json.dumps(event)}\n\n".encode())
+                self.wfile.flush()
+            self.wfile.write(b"data: [DONE]\n\n")
+        elif self.path.startswith("/run"):
+            self.send_body(json.dumps({"id": "run_1", "status": "in_progress"}).encode(), "application/json")
+        else:
+            self.send_body(json.dumps(CHAT_REPLY).encode(), "application/json")
+
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        self.send_body(json.dumps(CHAT_REPLY).encode(), "application/json")
+
+
+class LogTestCase(unittest.TestCase):
+    """Starts the local server and turns logging on for each test."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        cls.base = f"http://127.0.0.1:{cls.server.server_port}"
+        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        http_log.disable()
+
+    def setUp(self):
+        http_log.enable(level="full", metrics=False, max_body=http_log.DEFAULT_MAX_BODY, polls="short")
+
+    def tearDown(self):
+        http_log.disable()
+
+    def logged(self, call):
+        """Run call() and return everything http_log wrote."""
+        with self.assertLogs("http_log", level="INFO") as captured:
+            result = call()
+        return "\n".join(captured.output), result
+
+
+class RequestsLogTest(LogTestCase):
+    def test_requests_post_redacts_secrets_and_pretty_prints(self):
+        text, response = self.logged(
+            lambda: requests.post(
+                f"{self.base}/chat?api-version=1&code=function-key",
+                json={"messages": [{"role": "user", "content": "Hi"}]},
+                headers={"Authorization": "Bearer real-token", "api-key": "real-key"},
+                timeout=10,
+            )
+        )
+        self.assertEqual(response.json()["choices"][0]["message"]["content"], "Hello")
+        self.assertIn("--- OUTBOUND REQUEST #", text)
+        self.assertIn("> POST " + self.base + "/chat?api-version=1&code=<redacted>", text)
+        self.assertIn("> Authorization: Bearer <redacted>", text)
+        self.assertIn("> api-key: <redacted>", text)
+        self.assertIn('"content": "Hi"', text)
+        self.assertIn("< 200 OK", text)
+        self.assertIn('"access_token": "<redacted>"', text)
+        for secret in ("real-token", "real-key", "function-key", "secret-token-value"):
+            self.assertNotIn(secret, text)
+
+    def test_requests_raw_gzip_stream_is_decoded(self):
+        # azure-core reads with stream=True and raw.read(decode_content=False).
+        def call():
+            response = requests.get(f"{self.base}/gzip", stream=True, timeout=10)
+            chunks = []
+            while chunk := response.raw.read(64, decode_content=False):
+                chunks.append(chunk)
+            return gzip.decompress(b"".join(chunks))
+
+        text, body = self.logged(call)
+        self.assertEqual(json.loads(body)["choices"][0]["message"]["content"], "Hello")
+        self.assertIn('"content": "Hello"', text)
+
+    def test_binary_and_long_bodies_are_shortened(self):
+        http_log.enable(max_body=100)
+        text, _ = self.logged(lambda: requests.get(f"{self.base}/image", timeout=10))
+        self.assertIn("<binary body, 1.0 KB, image/png>", text)
+        text, response = self.logged(lambda: requests.get(f"{self.base}/long", timeout=10))
+        self.assertEqual(len(response.text), 5000)
+        self.assertIn("x" * 100 + "...more...", text)
+        self.assertNotIn("x" * 101, text)
+
+    def test_summary_level_with_metrics(self):
+        http_log.enable(level="summary", metrics=True)
+        text, _ = self.logged(lambda: requests.get(f"{self.base}/chat", timeout=10))
+        self.assertNotIn("OUTBOUND REQUEST", text)
+        self.assertRegex(
+            text, r"HTTP #\d+ GET .*/chat -> 200 OK  \(\d+\.\d\d s, sent 0 B, received .*tokens 12 in / 3 out\)"
+        )
+
+    def test_metrics_off_by_default(self):
+        text, _ = self.logged(lambda: requests.get(f"{self.base}/chat", timeout=10))
+        self.assertNotIn("[metrics]", text)
+
+    def test_enable_twice_logs_once(self):
+        http_log.enable()
+        text, _ = self.logged(lambda: requests.get(f"{self.base}/chat", timeout=10))
+        self.assertEqual(text.count("--- OUTBOUND REQUEST"), 1)
+
+    def test_off_level_logs_nothing(self):
+        http_log.enable(level="off")
+        with self.assertNoLogs("http_log"):
+            requests.get(f"{self.base}/chat", timeout=10)
+
+    def test_repeated_get_is_a_short_status_line(self):
+        def poll():
+            for _ in range(3):
+                requests.get(f"{self.base}/run/run_1", timeout=10)
+
+        text, _ = self.logged(poll)
+        self.assertEqual(text.count("--- OUTBOUND REQUEST"), 1)  # only the first GET in full
+        self.assertEqual(text.count('"status": "in_progress"'), 1)
+        short_lines = re.findall(r"HTTP #\d+ GET .*/run/run_1 -> 200 OK, status: in_progress", text)
+        self.assertEqual(len(short_lines), 2)
+
+    def test_repeated_get_in_full_when_asked(self):
+        http_log.enable(polls="full")
+        text, _ = self.logged(lambda: [requests.get(f"{self.base}/run/run_1", timeout=10) for _ in range(2)])
+        self.assertEqual(text.count("--- OUTBOUND REQUEST"), 2)
+        self.assertNotIn(", status: in_progress", text)
+
+    def test_connection_error_is_logged(self):
+        with self.assertLogs("http_log") as captured, self.assertRaises(requests.ConnectionError):
+            requests.get("http://127.0.0.1:9/nothing", timeout=2)
+        self.assertIn("--- OUTBOUND ERROR #", "\n".join(captured.output))
+
+
+@unittest.skipIf(httpx2 is None and httpx is None, "neither httpx2 nor httpx is installed")
+class HttpxLogTest(LogTestCase):
+    """The same transport hooks for every installed httpx flavour (the openai SDK uses httpx2)."""
+
+    def clients(self):
+        return [module for module in (httpx2, httpx) if module is not None]
+
+    def test_sync_gzip_json(self):
+        for module in self.clients():
+            with self.subTest(module=module.__name__), module.Client() as client:
+                # A query per client: a second GET of the same URL would be logged as a status check.
+                url = f"{self.base}/gzip?client={module.__name__}"
+                text, response = self.logged(lambda url=url: client.get(url, headers={"Cookie": "a=b"}))
+                self.assertEqual(response.json()["usage"]["completion_tokens"], 3)
+                self.assertIn('"content": "Hello"', text)
+                self.assertIn("> Cookie: <redacted>", text)
+
+    def test_streamed_events_pass_through_and_are_logged_at_the_end(self):
+        http_log.enable(metrics=True)
+        for module in self.clients():
+            with self.subTest(module=module.__name__), module.Client() as client:
+
+                def call(module=module):
+                    with client.stream("GET", f"{self.base}/sse?client={module.__name__}") as response:
+                        return [line for line in response.iter_lines() if line.startswith("data:")]
+
+                text, lines = self.logged(call)
+                self.assertEqual(len(lines), 4)
+                self.assertIn('data: {"choices": [{"delta": {"content": "Hel"}}]}', text)
+                self.assertIn("tokens 7 in / 2 out", text)
+
+    def test_async_post(self):
+        for module in self.clients():
+            with self.subTest(module=module.__name__):
+
+                async def call(module=module):
+                    async with module.AsyncClient() as client:
+                        return await client.post(f"{self.base}/chat", json={"input": "Hi"})
+
+                text, response = self.logged(lambda: asyncio.run(call()))
+                self.assertEqual(response.status_code, 200)
+                self.assertIn('"input": "Hi"', text)
+                self.assertIn("--- OUTBOUND RESPONSE #", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

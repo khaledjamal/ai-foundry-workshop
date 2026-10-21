@@ -34,6 +34,8 @@ from azure.ai.evaluation import (
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 SAMPLE_DATA = [
     {
         "query": "How can I start a beginner workout routine at home?",
@@ -173,4 +175,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

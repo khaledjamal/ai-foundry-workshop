@@ -21,6 +21,8 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 AGENT_NAME = "health-search-agent"
 VECTOR_STORE_NAME = "health_resources_example"
 
@@ -227,4 +229,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

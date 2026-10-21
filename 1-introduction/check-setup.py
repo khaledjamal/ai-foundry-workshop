@@ -23,6 +23,8 @@ from azure.identity import DefaultAzureCredential
 from azure.search.documents.indexes import SearchIndexClient
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 ENV_FILE = Path(__file__).resolve().parent.parent / "2-notebooks" / ".env"
 # Settings per lab group; "required" groups fail the check when a setting is missing, the others only warn.
@@ -160,4 +162,5 @@ def report(checks):
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

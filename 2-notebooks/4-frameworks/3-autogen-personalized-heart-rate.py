@@ -40,6 +40,8 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 
+from workshop_utils import http_log
+
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 DATA_FILE = Path(__file__).resolve().parent / "example-data" / "20250417_health_data.csv"
 TIMEZONE_OFFSET_SECONDS = 5 * 60 * 60  # same shift to local time as the notebook
@@ -298,4 +300,5 @@ async def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     asyncio.run(main())

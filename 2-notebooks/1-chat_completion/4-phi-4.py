@@ -29,6 +29,8 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from workshop_utils import http_log
+
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 # USD per 1M input / output tokens, Global deployments in East US 2 (Azure Retail Prices API, checked 2026-10-18).
 PRICES = {"Phi-4": (0.125, 0.50), "Phi-4-reasoning": (0.125, 0.50), "gpt-4o-mini": (0.15, 0.60)}
@@ -167,4 +169,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

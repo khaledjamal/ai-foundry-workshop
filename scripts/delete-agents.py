@@ -15,6 +15,8 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 
 def get_project_endpoint():
     direct_endpoint = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
@@ -61,4 +63,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

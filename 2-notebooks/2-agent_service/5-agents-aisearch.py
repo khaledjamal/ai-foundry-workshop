@@ -39,6 +39,8 @@ from azure.search.documents.indexes.models import (
 )
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 INDEX_NAME = "myfitnessindex"
 AGENT_NAME = "fitness-agent-search"
 DELETE_AGENT_AFTER_RUN = True
@@ -562,4 +564,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

@@ -33,6 +33,8 @@ from azure.ai.projects.models import MCPTool, PromptAgentDefinition
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+from workshop_utils import http_log
+
 AGENT_NAME = "workout-mcp-agent"
 SERVER_LABEL = "workout_tools"
 CONNECTION_NAME = "workout-mcp-key"
@@ -200,4 +202,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

@@ -104,7 +104,7 @@ generated image are in [docs/setup.md](docs/setup.md#labs).
 |---|---|---|
 | [Setup check](1-introduction/check-setup.py) | read-only check of settings, sign-in, deployments and connections; no model call | [output](sample-output/check-setup.py-output-20261018-172359.txt) |
 | [Chat completion](2-notebooks/1-chat_completion/1-basic-chat-completion-azure-openai.py) | the same calls through `openai.AzureOpenAI` and through the Foundry project client | [output](sample-output/1-basic-chat-completion-azure-openai.py-output-20261016-070614.txt) |
-| [Chat: REST vs SDK](2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py) (new) | one chat request sent by hand with `requests` and through the `openai` SDK, side by side | [output](sample-output/1-basic-chat-completion-rest-vs-sdk.py-output-20261018-120820.txt) |
+| [Chat: REST vs SDK](2-notebooks/1-chat_completion/1-basic-chat-completion-rest-vs-sdk.py) (new) | one chat request sent by hand with `requests` and through the `openai` SDK, side by side | [output](sample-output/1-basic-chat-completion-rest-vs-sdk.py-output-20261021-131720.txt) |
 | [Embeddings](2-notebooks/1-chat_completion/2-embeddings-azure-openai.py) | text embeddings with `text-embedding-3-small` | [output](sample-output/2-embeddings-azure-openai.py-output-20261014-094054.txt) |
 | [Image embeddings](2-notebooks/1-chat_completion/2-embeddings-image-embeddings.py) | Cohere `embed-v-4-0`: an X-ray image and text captions in one vector space | [output](sample-output/2-embeddings-image-embeddings.py-output-20261018-133654.txt) |
 | [Image generation](2-notebooks/1-chat_completion/2-embeddings-image-generation.py) | `gpt-image-2` through the Azure OpenAI v1 endpoint with an Entra ID token | [output](sample-output/2-embeddings-image-generation.py-output-20261018-133622.txt) |
@@ -152,6 +152,9 @@ uv run python 1-introduction/check-setup.py     # read-only: sign-in, deployment
 uv run python 2-notebooks/1-chat_completion/1-basic-chat-completion-azure-openai.py
 ```
 
+Each script prints every HTTP request and response it sends, the SDKs' calls included, with secrets redacted
+(`HTTP_LOG=summary` for one line per call, `HTTP_LOG=off` to hide them; see [HTTP log](docs/setup.md#http-log)).
+
 The other labs also need two more Python environments (some packages conflict) and a few more deployments and
 resources, all described in [docs/setup.md](docs/setup.md).
 
@@ -171,6 +174,9 @@ requirements-agents-v2.txt tested versions for the new agents API labs (Bing, We
 sample-output/            redacted console output of a recorded run of each lab script, plus the generated image
 scripts/delete-agents.py  removes leftover agents by name from the Foundry project
 scripts/probe-mcp-http.py raw MCP requests over HTTP, to debug the Functions MCP server
+workshop_utils/http_log.py logs every HTTP request and response of the scripts, secrets redacted
+tests/                    unit tests of the HTTP log against a local server (no Azure)
+pyproject.toml            makes workshop_utils installable (the `-e .` line in the requirements files)
 README.upstream.md        Microsoft's original README
 ```
 

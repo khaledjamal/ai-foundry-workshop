@@ -4,10 +4,13 @@ A learning companion to the chat completion lab (1-basic-chat-completion.ipynb):
 the hood. Both calls go to the same Azure OpenAI deployment with the same messages and settings, signed in with
 the same Entra ID token (no API key):
   1. REST: `requests.post` to {OPENAI_ENDPOINT}/openai/deployments/{deployment}/chat/completions?api-version=...
-     with an `Authorization: Bearer <token>` header and a JSON body, printed before it is sent (token hidden).
+     with an `Authorization: Bearer <token>` header and a JSON body.
   2. SDK:  `AzureOpenAI(...).chat.completions.with_raw_response.create(...)`, which builds that same request and
-     also exposes the HTTP response, so both sides show status, request id, rate-limit headers and timing.
-Then a side-by-side table: status, latency, tokens, answer length. Exits with 1 unless both calls return an answer.
+     also exposes the HTTP response's status.
+The HTTP log (workshop_utils.http_log) prints both requests and responses in full, headers and JSON bodies, with
+the token redacted, so the two can be compared line by line: the same body, plus the SDK's own headers (its user
+agent, for example). Then a side-by-side table: status, latency, tokens, answer length. Exits with 1 unless both
+calls return an answer.
 
 Settings from 2-notebooks/.env: OPENAI_ENDPOINT, OPENAI_API_VERSION, MODEL_DEPLOYMENT_NAME. Two small paid calls on
 gpt-4o-mini, well under $0.01 per run.
@@ -17,7 +20,6 @@ Run from the project root:
 """
 
 import argparse
-import json
 import os
 import time
 from pathlib import Path
@@ -27,18 +29,12 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 
+from workshop_utils import http_log
+
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 SYSTEM_PROMPT = "You are FitChat GPT, a friendly fitness assistant. Remind users you're not a medical professional."
 QUESTION = "Give me three quick tips to stay active during a busy workday."
 SETTINGS = {"max_tokens": 200, "temperature": 0.7}
-# Response headers worth comparing: request tracing, the region that served it, remaining quota.
-HEADERS_TO_SHOW = [
-    "apim-request-id",
-    "x-request-id",
-    "x-ms-region",
-    "x-ratelimit-remaining-requests",
-    "x-ratelimit-remaining-tokens",
-]
 
 
 def print_section(title):
@@ -55,25 +51,15 @@ def require_env(name):
     return value
 
 
-def show_headers(headers):
-    for name in HEADERS_TO_SHOW:
-        if name in headers:
-            print(f"  {name}: {headers[name]}")
-
-
 def call_rest(endpoint, api_version, deployment, token, messages):
     """POST the chat completion request by hand; return (status, seconds, body or None)."""
     url = f"{endpoint.rstrip('/')}/openai/deployments/{deployment}/chat/completions"
     params = {"api-version": api_version}
     body = {"messages": messages, **SETTINGS}
-    print(f"POST {url}?api-version={api_version}")
-    print("Headers: Authorization: Bearer <Entra ID token, hidden>, Content-Type: application/json")
-    print(f"Body: {json.dumps(body, indent=2)}")
     start = time.perf_counter()
     response = requests.post(url, params=params, json=body, headers={"Authorization": f"Bearer {token}"}, timeout=60)
     seconds = time.perf_counter() - start
     print(f"\nHTTP {response.status_code} in {seconds:.2f} s")
-    show_headers(response.headers)
     if not response.ok:
         print(f"Error body: {response.text[:500]}")
         return response.status_code, seconds, None
@@ -86,8 +72,7 @@ def call_sdk(client, deployment, messages):
     start = time.perf_counter()
     raw = client.chat.completions.with_raw_response.create(model=deployment, messages=messages, **SETTINGS)
     seconds = time.perf_counter() - start
-    print(f"\nHTTP {raw.status_code} in {seconds:.2f} s  (request sent to {raw.http_request.url})")
-    show_headers(raw.headers)
+    print(f"\nHTTP {raw.status_code} in {seconds:.2f} s")
     return raw.status_code, seconds, raw.parse()
 
 
@@ -143,4 +128,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

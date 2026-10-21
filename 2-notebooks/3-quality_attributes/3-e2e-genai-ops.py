@@ -77,6 +77,8 @@ from dotenv import load_dotenv
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 
+from workshop_utils import http_log
+
 SERVICE_NAME = "genai-ops-lab"
 UPSTREAM = "https://github.com/Azure/ai-foundry-workshop, 2-notebooks/3-quality_attributes/3-e2e-GenAI-Ops.ipynb"
 ALL_SECTIONS = [1, 2, 3, 4, 5, 6, 7]
@@ -672,4 +674,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()

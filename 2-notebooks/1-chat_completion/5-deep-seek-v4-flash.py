@@ -31,6 +31,8 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from workshop_utils import http_log
+
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 # USD per 1M input / output tokens, DeepSeek-V4-Flash Global deployment in East US 2 (Azure Retail Prices API,
 # checked 2026-10-18). DeepSeek-R1 was 1.35 / 5.40.
@@ -163,4 +165,5 @@ def main():
 
 
 if __name__ == "__main__":
+    http_log.enable()
     main()
