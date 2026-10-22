@@ -128,11 +128,11 @@ generated image are in [docs/setup.md](docs/setup.md#labs).
 ## Model choice
 
 gpt-4o-mini is the default: on the Azure AI Search agent it made the same tool calls and gave the same grounded
-answers as gpt-4o at about 1/17 of the per-token price (one run on two questions, not a benchmark). Two newer models,
-gpt-5.4-mini and gpt-5.4-nano, failed on the classic agents API once the Azure AI Search tool was attached, which
-matches Microsoft's documented tool limits for gpt-5-family models on classic agents. The classic agents API retires on
-2027-03-31, before gpt-4o-mini (2027-04-14), so the classic labs need to move to the new agents API by then. The other
-comparisons (Phi-4, DeepSeek-V4-Flash, Web Search vs Grounding with Bing) are in the [findings](docs/findings.md).
+answers as gpt-4o at about 1/17 of the per-token price (one run on two questions, not a benchmark). gpt-5.4-mini and
+gpt-5.4-nano failed on the classic agents API once the Azure AI Search tool was attached; Microsoft points models later
+than gpt-5 to the new agents API, and the classic API itself retires on 2027-03-31, so moving the classic labs there
+comes next. Details, and the other comparisons (Phi-4, DeepSeek-V4-Flash, Web Search vs Grounding with Bing), are in
+the [findings](docs/findings.md#model-choice-gpt-4o-vs-gpt-4o-mini).
 
 ## Setup
 
