@@ -83,7 +83,9 @@ from workshop_utils import http_log
 from workshop_utils.settings import load_env
 
 SERVICE_NAME = "genai-ops-lab"
-UPSTREAM = "https://github.com/Azure/ai-foundry-workshop, src/3-quality/3-e2e-GenAI-Ops.ipynb"
+UPSTREAM = (
+    "https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/3-quality_attributes/3-e2e-GenAI-Ops.ipynb"
+)
 ALL_SECTIONS = [1, 2, 3, 4, 5, 6, 7]
 LAB_DIR = Path(__file__).resolve().parent
 EXCERPT_CHARS = 160
