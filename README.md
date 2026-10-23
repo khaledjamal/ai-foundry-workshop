@@ -2,7 +2,7 @@
 
 ![Python 3.13](https://img.shields.io/badge/python-3.13-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
-[![lint](https://github.com/khaledjamal/ai-foundry-workshop/actions/workflows/lint.yml/badge.svg)](https://github.com/khaledjamal/ai-foundry-workshop/actions/workflows/lint.yml)
+[![lint](https://github.com/khaledjamal/azure-ai-foundry-agents/actions/workflows/lint.yml/badge.svg)](https://github.com/khaledjamal/azure-ai-foundry-agents/actions/workflows/lint.yml)
 
 I built AI agents on Azure AI Foundry (now
 [Microsoft Foundry](https://learn.microsoft.com/azure/foundry/what-is-foundry)) in Python: a shopping agent that searches
@@ -142,8 +142,8 @@ and an Azure AI Foundry project with gpt-4o-mini, gpt-4o and text-embedding-3-sm
 AI Search resource (the free tier is enough). The commands are for Linux or macOS (on Windows, use WSL).
 
 ```bash
-git clone https://github.com/khaledjamal/ai-foundry-workshop.git
-cd ai-foundry-workshop
+git clone https://github.com/khaledjamal/azure-ai-foundry-agents.git
+cd azure-ai-foundry-agents
 uv venv --python 3.13
 uv pip install -r requirements-labs.txt          # the versions the labs were tested with
 cp .env.example .env                             # then fill in your values; keep the file out of git
