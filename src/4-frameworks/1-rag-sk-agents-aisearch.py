@@ -3,6 +3,13 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/4-frameworks/1-rag-sk-agents-aisearch.ipynb
 
+This script builds the same kind of shopping assistant as the Azure AI Search agent lab, but through Semantic Kernel,
+Microsoft's open-source framework for AI apps. The agent searches a small fitness catalog with Azure AI Search, and a
+Semantic Kernel plugin, code running in this script, filters products by price, so a budget question gets an exact
+answer. After each answer it prints the tools the agent used and what they returned. It had the same problem as the
+agent lab: the search tool never passed prices to the model, fixed the same way. Microsoft's notebook used Semantic
+Kernel calls that no longer exist.
+
 Builds a small fitness product index in Azure AI Search, creates a Foundry agent with the Azure AI Search
 tool, wraps it in Semantic Kernel's AzureAIAgent and asks two shopping questions on one thread. Afterwards it
 deletes everything it created (thread, agent, index).

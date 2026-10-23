@@ -4,6 +4,13 @@ Replaces Microsoft's workshop notebook, which gave the agent an Azure Functions 
 (that needs the standard agent setup); here the Function app is a remote MCP server instead:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/2-agent_service/6-agents-az-functions.ipynb
 
+This script connects a Foundry agent to tools hosted outside Azure AI Foundry through MCP (Model Context Protocol), the
+open standard for giving agents tools. The tools run on a small Azure Functions app (src/functions-mcp-server): one
+lists workout goals, the other plans a workout. The agent asks to use them and the script approves only those two tools,
+so the agent can't call anything else on its own. The server's key sits in a Foundry project connection, not in the
+agent or the code. The script checks the Function app first: if it is stopped, it prints the start command instead of
+failing midway. It uses the new agents API.
+
 The agent's MCP tool points to the Function app's endpoint and authenticates through the project connection
 `workout-mcp-key` (Custom keys, key name x-functions-key), so the agent definition holds no key. Every tool call
 needs approval: the script approves only list_workout_goals and suggest_workout on this server and denies anything

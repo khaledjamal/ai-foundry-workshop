@@ -3,6 +3,12 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/4-frameworks/3-autogen-personalized-heart-rate.ipynb
 
+This script turns a day of sample smartwatch data (a heart-rate reading every few seconds) into an hourly summary and a
+chart, then has two AutoGen agents plan the user's day from it: one fetches the summary and matching wellness tips, the
+other writes a schedule of workouts and breaks from those tips only. It shows agents working with real data, with the
+number crunching done in plain code (pandas) and the planning done by the model. It is a wellness demo, not medical
+advice: the notebook's heart-strain scoring is left out on purpose, and unlike in the notebook, the agents actually run.
+
 What it does:
 1. Loads the sample wearable data (example-data/20250417_health_data.csv, one reading every ~3 seconds),
    summarizes the heart rate per hour and saves a chart of the hourly averages.

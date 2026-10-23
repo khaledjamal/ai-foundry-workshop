@@ -3,6 +3,12 @@
 Workshop notebooks:
 https://github.com/Azure/ai-foundry-workshop/tree/273c24c/1-introduction
 
+This script checks that everything the labs need is in place before any of them runs, and costs nothing because it calls
+no model. It checks which settings are filled in (names only, never values), that the Azure sign-in works, that the
+Foundry project answers and has the model deployments and connections the labs expect, and that Azure AI Search accepts
+its key. It prints a result for each check, so a setup problem shows up here with a clear message instead of as an error
+in the middle of a lab.
+
 The notebooks troubleshoot DefaultAzureCredential, create the project client and list models and connections. This
 script does the same checks in one go, without calling any model, so it costs nothing:
   1. which lab settings are set in .env (names only, values are never printed),

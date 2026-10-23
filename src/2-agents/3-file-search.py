@@ -3,6 +3,12 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/2-agent_service/3-file-search.ipynb
 
+This script gives an agent the File Search tool, so it answers from your own documents. It uploads two short Markdown
+files (recipes and dietary guidelines) into a vector store, a search index the Agent Service manages, and asks three
+questions, such as a gluten-free lunch recipe. Each answer comes with citations naming the file it used, so a reader can
+check where it came from. It is the managed form of RAG, with no search service to set up. It checks that each run
+completed, then deletes the thread, the agent, the vector store and the files.
+
 Uploads two small Markdown files (recipes and dietary guidelines) into a vector store, creates a
 health resource agent with the File Search tool, asks three questions on one thread, prints the
 answers with their file citations, then deletes everything it created in the project

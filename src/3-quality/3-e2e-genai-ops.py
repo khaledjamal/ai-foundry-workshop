@@ -4,6 +4,17 @@ quality, observability, RAG evaluation and an indirect attack simulation, traced
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/3-quality_attributes/3-e2e-GenAI-Ops.ipynb
 
+This script puts the checks a team runs on a generative AI app before and after release into one place:
+- Safety: tests outputs for harmful content and copyrighted text.
+- Security: attacks a test agent with Microsoft-generated jailbreak prompts to see whether it refuses.
+- Quality: a second model acting as judge scores answers for relevance and groundedness, including answers built from a
+  small search index.
+- Observability: traces every step to Application Insights, so problems can be found later.
+
+The first run reported success while two things had failed: the attack tool silently dropped an agent error, and the
+judge gave a perfect score to an answer that had no sources. The script now detects both and fails the section, so a
+green result means the checks really ran.
+
 Sections (same numbers as the notebook; run all, or pick some with --sections):
 1. Model selection: list the project's deployments and Azure OpenAI connections, make one chat call.
 2. Safety evaluation: ContentSafetyEvaluator (violence, sexual, self-harm, hate) on the notebook's self-harm

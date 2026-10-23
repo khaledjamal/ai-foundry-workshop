@@ -3,6 +3,13 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/2-agent_service/5-agents-aisearch.ipynb
 
+This script builds a shopping assistant for a small fitness product catalog. The agent gets two tools: Azure AI Search,
+to find products by description, and a price filter that runs in this script, to answer budget questions exactly. It
+asks two questions and prints every tool call, so you can see which tool the agent chose and what came back. A finding:
+the search tool passes only text fields to the model, so prices never reached it and the agent said they weren't given;
+putting the price into the product text and adding the price filter fixed it. gpt-4o-mini made the same tool calls and
+gave the same answers as gpt-4o at about a seventeenth of the price.
+
 Builds a small fitness product index in Azure AI Search, gives a classic-API agent the search tool (through the
 project's Azure AI Search connection) plus find_items_under(max_price, category) as a function tool, asks the
 notebook's questions and prints each run's status and tool calls. Each question's thread is deleted after its answer,

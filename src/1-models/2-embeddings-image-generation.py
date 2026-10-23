@@ -3,6 +3,11 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/1-chat_completion/2-embeddings.ipynb
 
+This script generates an image from a text prompt with gpt-image-2 in Azure AI Foundry and saves it as a PNG file.
+Microsoft's notebook used DALL-E 3, which Azure has retired, so the script moves to its successor and signs in with the
+Azure CLI login (Entra ID) instead of an API key. It checks that a valid image of the requested size was saved, and lets
+you choose the quality, which sets the price: from under a cent at low quality to about 20 cents at high.
+
 The notebook used DALL-E 3 with an API key; DALL-E 3 was retired on Azure on 2026-03-04, so this version uses
 gpt-image-2 and an Entra ID token from the Azure CLI login (no API key). It replaces an earlier script,
 old-dalle3_image_generation.py. It sends the notebook's prompt through the openai SDK's `images.generate` on the

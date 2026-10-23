@@ -3,6 +3,13 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/1-chat_completion/5-deep-seek-r1.ipynb
 
+This script runs DeepSeek-V4-Flash on the same three prompts twice, with thinking off and on, to show what step-by-step
+reasoning adds and what it costs. The prompts are a travel plan, a database design question and a pace calculation with
+one right answer; the script prints each answer, the model's thinking when it is on, and a table of tokens, time and
+cost for both modes. In the recorded run both modes got the calculation right; with thinking, that answer took 4.8 s
+instead of 1.4 s, and the three prompts cost $0.003 instead of $0.002. Microsoft's notebook used DeepSeek-R1, now
+retired on Azure, and cut the thinking out of the text with a pattern; V4-Flash returns it in a field of its own.
+
 The notebook called a serverless DeepSeek-R1 through the azure-ai-inference SDK (retired 2026-08-26) and cut the
 reasoning out of the reply with a <think> regex. DeepSeek-R1 is retired on Azure (Microsoft lists DeepSeek-V4-Pro as
 its replacement), so this script uses the cheaper DeepSeek-V4-Flash (GA), deployed on the Foundry resource and called

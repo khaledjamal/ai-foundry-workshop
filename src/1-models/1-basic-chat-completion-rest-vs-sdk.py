@@ -2,6 +2,11 @@
 
 New: not in Microsoft's workshop.
 
+This script sends the same chat question to the same model twice: once as an HTTP request built by hand and once through
+the OpenAI Python library, then prints both requests and responses in full. It shows that the library adds convenience,
+not magic: the request body is the same, and the library only adds its own headers. A table at the end compares status,
+time, tokens and answer length. Both calls sign in with the same Entra ID token, so no API key is involved.
+
 A learning companion to the chat completion lab (1-basic-chat-completion.ipynb): it shows what the SDK does under
 the hood. Both calls go to the same Azure OpenAI deployment with the same messages and settings, signed in with
 the same Entra ID token (no API key):

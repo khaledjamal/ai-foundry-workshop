@@ -4,6 +4,13 @@ with OpenTelemetry, to the console or to Application Insights (shown on the Foun
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/3-quality_attributes/1-Observability.ipynb
 
+This script makes an AI app's behavior visible with tracing: each model call and each agent step becomes a timed record
+with its model, token counts and status. It traces one chat call and a small file-search agent answering three
+questions, and sends the records to the console or to Application Insights, where they also appear on the Foundry
+portal's Tracing page. This is how a team finds a slow step, a failed run or a jump in token use in production. Prompts
+and answers stay out of the traces unless asked for, since they may hold private data. Microsoft's notebook used tracing
+calls that no longer exist.
+
 Steps: list the project's connections; make one chat call; build a file-search agent over two small
 Markdown files and ask it three questions on one thread; delete everything it created. Every model and
 agent call becomes a span (a timed step with its model, tokens and status).

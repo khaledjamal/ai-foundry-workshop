@@ -3,6 +3,13 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/1-chat_completion/2-embeddings.ipynb
 
+This script makes the same embedding calls as its twin, 2-embeddings-azure-openai.py, but through the Azure AI Foundry
+project SDK, which connects to the project and hands back a ready OpenAI client. Embeddings are lists of numbers
+(vectors) that capture meaning, so texts about similar things end up close together. It embeds three short health
+phrases, then a user question with a prompt template in front, and prints each vector's length and first values.
+Embeddings are the building block of search by meaning and of RAG. It signs in with the Azure CLI login (Entra ID)
+instead of an API key.
+
 Connection method: AIProjectClient from azure-ai-projects, created with the Foundry project
 endpoint. The project client hands back an AzureOpenAI client through get_openai_client(),
 using an Entra ID token from the Azure CLI login.

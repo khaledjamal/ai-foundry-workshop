@@ -3,6 +3,13 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/1-chat_completion/3-basic-rag.ipynb
 
+This script runs the same retrieval-augmented generation (RAG) as its twin, 3-basic-rag-azure-openai.py, but gets the
+OpenAI client through the Azure AI Foundry project SDK instead of the Azure OpenAI endpoint. RAG is the usual way to
+make a model answer from your own documents instead of its general knowledge: six health tips become embeddings in an
+Azure AI Search index, and for each question the three closest tips are the only context the model gets, with an
+instruction to say "I'm not sure" when they don't cover the question. Models sign in with Entra ID; Azure AI Search uses
+its own key from .env.
+
 Embeds six health tips, stores them in an Azure AI Search vector index, then answers questions
 with the top matching tips as context.
 

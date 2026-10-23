@@ -3,6 +3,14 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/1-chat_completion/4-phi-4.ipynb
 
+This script compares three models on the same three prompts: Microsoft's small Phi-4, Phi-4-reasoning (which thinks step
+by step before answering) and gpt-4o-mini. The prompts are a training plan, an answer from a short text and a pace
+calculation with one right answer; a table at the end shows tokens, time and cost per model. It answers a practical
+question: does a smaller model or a reasoning model pay off? In the recorded run all three got the calculation right,
+gpt-4o-mini was the fastest at about the same cost, and Phi-4-reasoning took about 9 times as long for the same answers.
+Microsoft's notebook used a retired SDK; here all three models are called the same way, through the Azure OpenAI
+endpoint.
+
 The notebook called a serverless Phi-4 through the azure-ai-inference SDK (retired 2026-08-26). Here Phi-4 (version 7)
 and Phi-4-reasoning are deployed on the Foundry resource and called like the OpenAI models: the openai SDK on the
 Azure OpenAI v1 endpoint ({OPENAI_ENDPOINT}/openai/v1/) with an Entra ID token. Each model gets three prompts:

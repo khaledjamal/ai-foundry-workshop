@@ -3,6 +3,12 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/3-quality_attributes/2-evaluation.ipynb
 
+This script measures answer quality automatically, the way a team checks a model or prompt change before release. It
+scores three sample health answers in four ways: word overlap with a reference answer, a second model acting as judge of
+relevance and groundedness, Azure AI Foundry's safety check for violent content, and a custom check of answer length.
+The sample answers are poor on purpose ("London" as the capital of France), so low scores show that the evaluators work.
+The results also appear on the Foundry project's Evaluations page.
+
 Scores three sample health & fitness answers with azure-ai-evaluation:
 - F1 score: word overlap between the answer and the reference answer (no model call)
 - Relevance and Groundedness: gpt-4o acts as the judge (AI-assisted)

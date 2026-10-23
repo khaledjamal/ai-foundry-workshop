@@ -3,6 +3,14 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/1-chat_completion/1-basic-chat-completion.ipynb
 
+This script makes the same two chat calls as its twin, 1-basic-chat-completion-azure-openai.py, but starts from the
+Foundry project instead of the Azure OpenAI endpoint: the Azure AI Foundry project SDK connects to the project and hands
+back a ready OpenAI client. A system message sets the assistant's role (a fitness assistant that reminds users it isn't
+a medical professional), a user question goes in, and the model's answer comes out, with its token counts. The second
+call fills a prompt template with a user's name and goal. Starting from the project gives one entry point for models,
+agents and connections, which is how the agent labs work. It signs in with the Azure CLI login (Entra ID) instead of an
+API key and prints every HTTP request and response.
+
 Connection method: AIProjectClient from azure-ai-projects, created with the Foundry project
 endpoint. The project client hands back an AzureOpenAI client through get_openai_client(),
 using an Entra ID token from the Azure CLI login.

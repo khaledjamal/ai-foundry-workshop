@@ -2,6 +2,13 @@
 
 New: not in Microsoft's workshop.
 
+This script asks the same three questions as the Bing lab, with the same checks, but uses the newer built-in Web Search
+tool, which Microsoft now recommends as the starting point. It needs no separate Bing resource or connection, though
+Bing still runs underneath, so the same terms apply. In the recorded run it cited more sources (11 against 7) and read
+about twice the input tokens, still under a cent: no quality gap, and less to set up, which makes it the simpler default
+for a new agent. Each answer is printed with numbered citations and the search queries the agent sent. It uses the new
+agents API.
+
 A companion to 4-bing-grounding.py: the same three health questions, instructions and checks, but the agent uses
 `WebSearchTool` instead of `BingGroundingTool`. Microsoft's docs now say to start with this tool: it needs no
 Grounding with Bing resource and no project connection, so the agent definition holds only the tool. Underneath it

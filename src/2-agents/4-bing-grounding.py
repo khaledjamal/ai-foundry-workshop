@@ -3,6 +3,13 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/2-agent_service/4-bing_grounding.ipynb
 
+This script builds an agent that searches the web with Grounding with Bing before it answers, for questions the model's
+training data can't cover, such as recent health news. Each of the three questions must trigger at least one search, and
+each answer is printed with numbered citations, the source websites and a link to the Bing search, as Bing's terms
+require. A finding: the model writes the search query itself and searched for "2023 news"; adding today's date to its
+instructions and asking for official sources first fixed it. The Bing key stays in a Foundry project connection, not in
+the agent. It uses the new agents API.
+
 The script version of 4-bing_grounding.ipynb, written fresh for the new agents API (it replaces an earlier
 classic-API version, old-4-bing_grounding.py). The agent's Bing tool uses the project connection named in
 GROUNDING_WITH_BING_CONNECTION_NAME, so the agent definition holds no key. It asks the notebook's three health

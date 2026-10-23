@@ -3,6 +3,12 @@
 Workshop notebook:
 https://github.com/Azure/ai-foundry-workshop/blob/273c24c/2-notebooks/1-chat_completion/2-embeddings.ipynb
 
+This script shows that one model can place an image and text in the same space of meaning. It sends a hand X-ray image
+and three short captions to Cohere's embed-v-4-0 model in Azure AI Foundry, then ranks the captions by how close each
+one is to the image; the X-ray caption must come first. That is the basis of searching images with words, for example
+finding scans by a description. Microsoft's notebook used an SDK that has since been retired, and the OpenAI library has
+no image embeddings, so this script calls the Foundry REST API directly, signed in with Entra ID instead of an API key.
+
 The notebook embedded hand-xray.png with Cohere-embed-v3-english through the azure-ai-inference SDK. That SDK was a
 beta that Microsoft retired on 2026-08-26, and the openai SDK has no image embeddings, so this version calls the
 Foundry models REST API directly with requests and an Entra ID token (no API key). It replaces an earlier script,
