@@ -12,8 +12,8 @@ This script puts the checks a team runs on a generative AI app before and after 
 - Observability: traces every step to Application Insights, so problems can be found later.
 
 The first run reported success while two things had failed: the attack tool silently dropped an agent error, and the
-judge gave a perfect score to an answer that had no sources. The script now detects both and fails the section, so a
-green result means the checks really ran.
+judge gave a perfect score to an answer that had no sources. The script now detects both and fails the section, so
+neither failure can hide behind a success message any more.
 
 Sections (same numbers as the notebook; run all, or pick some with --sections):
 1. Model selection: list the project's deployments and Azure OpenAI connections, make one chat call.

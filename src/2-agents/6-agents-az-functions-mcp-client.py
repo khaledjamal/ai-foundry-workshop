@@ -1,9 +1,9 @@
-"""Free test of the Azure Functions MCP server: list its tools and call them, without any model or agent.
+"""Direct test of the Azure Functions MCP server: list its tools and call them, without any model or agent.
 
-This script talks to the workout MCP server directly, with no model and no agent, so it costs nothing: it lists the
-server's tools and calls them, against the local server or the one deployed on Azure Functions. MCP (Model Context
-Protocol) is the open standard that lets AI agents use outside tools. Testing the server on its own first means that a
-later failure points at the agent, not at the server.
+This script talks to the workout MCP server directly, with no model and no agent, so there are no model charges: it
+lists the server's tools and calls them, against the local server or the one deployed on Azure Functions. MCP (Model
+Context Protocol) is the open standard that lets AI agents use outside tools. Testing the server separately helps tell
+server or tool problems apart from problems in the agent integration.
 
 Works against the local server (`func start` in src/functions-mcp-server) or the deployed one. For the
 deployed one, set AZURE_FUNCTIONS_MCP_URL (https://<app>.azurewebsites.net/runtime/webhooks/mcp) and

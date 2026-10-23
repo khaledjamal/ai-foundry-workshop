@@ -3,8 +3,8 @@
 This file is the server side of the MCP lab: a small app on Azure Functions that offers two workout tools to any AI
 agent that speaks MCP (Model Context Protocol), the open standard for giving agents tools. One tool lists the workout
 goals it knows, the other builds a workout plan for a goal and a number of minutes. The plans come from fixed rules, not
-a model, so the answers are predictable and free. The app scales to zero when idle, so it costs almost nothing, and it
-needs a key, so only callers that have it can use the tools.
+a model, so the answers are predictable, with no model charges. The app scales to zero when idle, so it costs almost
+nothing, and it needs a key, so only callers that have it can use the tools.
 
 The Functions MCP extension serves every `@app.mcp_tool()` function as a tool at /runtime/webhooks/mcp
 (Streamable HTTP): the tool name comes from the function name, the description from its docstring and the input
