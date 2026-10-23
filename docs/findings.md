@@ -131,8 +131,9 @@ only from them and name their sources. Recorded run:
 
 ## Model choice: gpt-4o vs gpt-4o-mini
 
-On the Azure AI Search agent, with the same code, questions and index, gpt-4o-mini made the same tool calls and gave
-the same grounded answers as gpt-4o at about 1/17 of the per-token price, so it is the default here (list prices per
+On the Semantic Kernel version of the shopping agent (an Agent Service agent with the Azure AI Search tool and the
+price-filter plugin), with the same code, questions and index, gpt-4o-mini made the same tool calls and gave the same
+grounded answers as gpt-4o at about 1/17 of the per-token price, so it is the default here (list prices per
 1M input / output tokens, Global deployment in East US 2: gpt-4o $2.50 / $10, gpt-4o-mini $0.15 / $0.60;
 [Azure Retail Prices API](https://learn.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices),
 checked October 2026):
@@ -142,14 +143,17 @@ checked October 2026):
 | "Good for strength training?": searched the catalog | yes, 2 products with prices | yes, the same 2 products with prices |
 | "Cardio under $300?": called the price tool | yes, `find_items_under(300, Cardio)` | yes, `find_items_under(300, Cardio)` |
 | Answer | nothing under $300; closest is the treadmill at $499 | the same |
-| Cost per run | about $0.03–0.06 | well under $0.01 |
+| Tokens (input / output) | 3,737 / 201 | 3,707 / 186 |
+| Cost per run | about $0.011 | about $0.0007 |
 
-One run per model on two questions: a quick comparison, not a benchmark. Recorded run on gpt-4o-mini:
-[output](../sample-output/5-agents-aisearch.py-output-20261018-204747.txt). To use another deployment for one run, set
-it on the command line:
+One run per model on two questions: a quick comparison, not a benchmark. The token counts come from the deployments'
+Azure Monitor metrics for the two runs. Recorded run on gpt-4o-mini:
+[output](../sample-output/1-rag-sk-agents-aisearch.py-output-20261015-121028.txt); the Agent Service version made the
+same tool calls on gpt-4o-mini ([output](../sample-output/5-agents-aisearch.py-output-20261018-204747.txt)). To use
+another deployment for one run, set it on the command line:
 
 ```bash
-MODEL_DEPLOYMENT_NAME=gpt-4o uv run python src/2-agents/5-agents-aisearch.py
+MODEL_DEPLOYMENT_NAME=gpt-4o .venv-semantic-kernel/bin/python src/4-frameworks/1-rag-sk-agents-aisearch.py
 ```
 
 ## Newer models need the new agents API
@@ -162,11 +166,20 @@ plain agents and with only the function tool. The error doesn't give a reason, b
 later than gpt-5 need the new agents API. This result covers these two models with the Azure AI Search tool; the page
 lists the gpt-4.1 family without such limits.
 
-So these labs stay on gpt-4o-mini (2024-07-18). The deadline that matters comes first from the service: classic agents
-retire on 2027-03-31, two weeks before gpt-4o-mini and the gpt-4.1 family (2027-04-14, Microsoft's
+So the classic labs stay on gpt-4o-mini (2024-07-18). The deadline that matters comes first from the service: classic
+agents retire on 2027-03-31, two weeks before gpt-4o-mini and the gpt-4.1 family (2027-04-14, Microsoft's
 [model retirement schedule](https://learn.microsoft.com/azure/foundry/openai/concepts/model-retirement-schedule),
 checked October 2026). The classic labs need to move to the new agents API (`azure-ai-projects` 2.x) by then, and a
 newer model comes with that move.
+
+On the new agents API ([`5-agents-aisearch-v2.py`](../src/2-agents/5-agents-aisearch-v2.py)) the same models work with
+the same two tools. In one run on the two shopping questions, gpt-4o-mini, gpt-5.4-mini and gpt-5.4-nano all searched
+the catalog, called the price filter with $300 for the cardio question and gave the right answer (nothing under $300;
+the treadmill at $499 is closest). The 5.4 models followed the "always search first" instruction more closely: they
+searched on both questions, gpt-4o-mini only on the first. With default settings neither used reasoning tokens. Both
+questions cost $0.0005 on gpt-4o-mini, $0.0010 on gpt-5.4-nano and $0.0033 on gpt-5.4-mini, so gpt-5.4-nano is a
+workable replacement when the classic labs move, at about twice the token cost. One run, not a benchmark. Recorded run:
+[output](../sample-output/5-agents-aisearch-v2.py-output-20261023-172117.txt).
 
 ## Web Search vs Grounding with Bing
 
@@ -215,5 +228,6 @@ Like Microsoft's notebooks, most agent labs (basics, Code Interpreter, File Sear
 GenAI Ops, Semantic Kernel) use the classic Foundry Agent Service API: agents, threads and runs through
 `azure-ai-projects` 1.x. Microsoft retires it on 2027-03-31 (see the
 [model support page for classic agents](https://learn.microsoft.com/azure/foundry-classic/agents/concepts/model-region-support),
-checked October 2026). The Grounding with Bing, Web Search and Azure Functions MCP labs already use the new agents API
-(`azure-ai-projects` 2.x: versioned agents called through the Responses API).
+checked October 2026). The Grounding with Bing, Web Search and Azure Functions MCP labs, and the second version of the
+Azure AI Search agent, already use the new agents API (`azure-ai-projects` 2.x: versioned agents called through the
+Responses API).

@@ -11,7 +11,8 @@ Azure Functions, safety red-teaming and quality evaluation, and agents with Sema
 recorded run, and the [findings](docs/findings.md) explain the issues I found, why they happened and how I fixed them.
 It started from Microsoft's [Azure AI Foundry workshop](https://github.com/Azure/ai-foundry-workshop): I rebuilt its
 labs as Python scripts in [`src/`](src/) on the current SDKs and added the MCP server, the price-filter tool and the
-Web Search lab. The Bing, Web Search and MCP agents run on the new agents API, the others on the classic one.
+Web Search lab. The Bing, Web Search and MCP agents, and a second version of the Azure AI Search agent, run on the new
+agents API, the others on the classic one.
 
 [Code](src/) · [Findings](docs/findings.md) · [Labs](#labs) · [Setup](#setup)
 
@@ -29,6 +30,7 @@ Web Search lab. The Bing, Web Search and MCP agents run on the new agents API, t
   arrived. Fixed by indexing the price as text and adding a price-filter tool (a real `Price le <max>` query), built
   both as a Semantic Kernel plugin and as an Agent Service function tool.
   [Agent Service code](src/2-agents/5-agents-aisearch.py) ·
+  [New agents API version](src/2-agents/5-agents-aisearch-v2.py) ·
   [Semantic Kernel code](src/4-frameworks/1-rag-sk-agents-aisearch.py) ·
   [Recorded run](sample-output/5-agents-aisearch.py-output-20261018-204747.txt) ·
   [Full write-up](docs/findings.md#shopping-agent-prices-never-reached-the-model)
@@ -117,6 +119,7 @@ Microsoft's original notebook, what each script cleans up and the generated imag
 | [Grounding with Bing](src/2-agents/4-bing-grounding.py) | new agents API agent with Bing grounding and numbered web citations | [output](sample-output/4-bing-grounding.py-output-20261018-114459.txt) |
 | [Web Search](src/2-agents/4-web-search.py) (new) | the same questions with the built-in `WebSearchTool`, no extra resource | [output](sample-output/4-web-search.py-output-20261018-144147.txt) |
 | [Agent + Azure AI Search](src/2-agents/5-agents-aisearch.py) | product search tool plus a local price function tool | [output](sample-output/5-agents-aisearch.py-output-20261018-204747.txt) |
+| [Agent + Azure AI Search, new API](src/2-agents/5-agents-aisearch-v2.py) | the same agent on the new agents API, compared on gpt-4o-mini, gpt-5.4-mini and gpt-5.4-nano | [output](sample-output/5-agents-aisearch-v2.py-output-20261023-172117.txt) |
 | [Agent + Azure Functions MCP server](src/2-agents/6-agents-az-functions-mcp.py) (new) | MCP tool to a Function app, key from a project connection, each call approved | [output](sample-output/6-agents-az-functions-mcp.py-output-20261017-114003.txt) |
 | [Observability](src/3-quality/1-observability.py) | OpenTelemetry traces to the console or to Application Insights | [output](sample-output/1-observability.py-output-20261016-005619.txt) |
 | [Evaluation](src/3-quality/2-evaluation.py) | `azure-ai-evaluation`: F1, plus relevance and groundedness judged by a model | [output](sample-output/2-evaluation.py-output-20261014-103533.txt) |
@@ -127,12 +130,13 @@ Microsoft's original notebook, what each script cleans up and the generated imag
 
 ## Model choice
 
-gpt-4o-mini is the default: on the Azure AI Search agent it made the same tool calls and gave the same grounded
-answers as gpt-4o at about 1/17 of the per-token price (one run on two questions, not a benchmark). gpt-5.4-mini and
-gpt-5.4-nano failed on the classic agents API once the Azure AI Search tool was attached; Microsoft points models later
-than gpt-5 to the new agents API, and the classic API itself retires on 2027-03-31, so moving the classic labs there
-comes next. Details, and the other comparisons (Phi-4, DeepSeek-V4-Flash, Web Search vs Grounding with Bing), are in
-the [findings](docs/findings.md#model-choice-gpt-4o-vs-gpt-4o-mini).
+gpt-4o-mini is the default: on the Semantic Kernel version of the Azure AI Search agent it made the same tool calls and
+gave the same grounded answers as gpt-4o at about 1/17 of the per-token price (one run on two questions, not a
+benchmark). gpt-5.4-mini and gpt-5.4-nano failed on the classic agents API once the Azure AI Search tool was attached;
+Microsoft points models later than gpt-5 to the new agents API, and the classic API itself retires on 2027-03-31. On the
+new agents API all three answered both questions correctly with both tools; gpt-5.4-nano cost about twice as much as
+gpt-4o-mini, gpt-5.4-mini about seven times (one run). Details, and the other comparisons (Phi-4, DeepSeek-V4-Flash,
+Web Search vs Grounding with Bing), are in the [findings](docs/findings.md#model-choice-gpt-4o-vs-gpt-4o-mini).
 
 ## Setup
 

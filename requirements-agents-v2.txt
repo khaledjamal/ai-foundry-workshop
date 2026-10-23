@@ -1,6 +1,7 @@
-# Environment for the new agents API labs (azure-ai-projects 2.x): Bing grounding, Web Search, Functions MCP.
+# Environment for the new agents API labs (azure-ai-projects 2.x): Bing grounding, Web Search, Functions MCP and the
+# Azure AI Search agent (v2).
 # Tested versions (uv pip freeze). Top-level packages: "azure-ai-projects==2.8.0" azure-identity python-dotenv mcp
-# requests
+# requests "azure-search-documents==12.0.0"
 # Rebuild:
 #   uv venv .venv-agents-v2 --python 3.13
 #   uv pip install --python .venv-agents-v2/bin/python -r requirements-agents-v2.txt
@@ -12,6 +13,7 @@ attrs==26.1.0
 azure-ai-projects==2.8.0
 azure-core==1.41.0
 azure-identity==1.26.0
+azure-search-documents==12.0.0
 azure-storage-blob==12.31.0
 certifi==2026.7.22
 cffi==2.1.1

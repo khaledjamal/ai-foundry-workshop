@@ -1,0 +1,275 @@
+Sample output of src/2-agents/5-agents-aisearch-v2.py
+Run on 2026-10-23 17:21 with: HTTP_LOG=summary ../../.venv-agents-v2/bin/python src/2-agents/5-agents-aisearch-v2.py --models gpt-4o-mini,gpt-5.4-mini,gpt-5.4-nano
+Real endpoints, resource names and GUIDs are replaced with placeholders such as <resource-name> and <id>; agent, thread and message IDs are kept.
+--------------------------------------------------------------------------------
+Project endpoint: https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
+Models: gpt-4o-mini, gpt-5.4-mini, gpt-5.4-nano
+Disclaimer: This program is a technical demonstration and does not provide professional medical advice.
+
+================================================================================
+STEP 1: CREATE AND FILL THE AZURE AI SEARCH INDEX
+================================================================================
+Azure AI Search endpoint: https://<search-service>.search.windows.net
+
+HTTP #1 GET https://<search-service>.search.windows.net/indexes?api-version=2026-04-01 -> 200 OK
+
+HTTP #2 POST https://<search-service>.search.windows.net/indexes?api-version=2026-04-01 -> 201 Created
+Created index: myfitnessindex-v2
+
+HTTP #3 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.index?api-version=2026-04-01 -> 200 OK
+Uploaded 4 products.
+
+HTTP #4 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.post.search?api-version=2026-04-01 -> 200 OK
+
+HTTP #5 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.post.search?api-version=2026-04-01 -> 200 OK
+Index is searchable.
+
+HTTP #6 GET https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/connections?api-version=v1&connectionType=CognitiveSearch&defaultConnection=true -> 200 OK
+
+HTTP #7 GET https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/connections/<search-service>?api-version=v1 -> 200 OK
+Azure AI Search connection: <search-service>
+
+================================================================================
+STEP 2: AGENT ON gpt-4o-mini
+================================================================================
+
+HTTP #8 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/agents/fitness-agent-search-v2/versions?api-version=v1 -> 200 OK, status: active
+Agent created: name=fitness-agent-search-v2 version=1 model=gpt-4o-mini
+
+User: Which items are good for strength training?
+
+HTTP #9 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  azure_ai_search_call  status=completed
+    arguments: {"query":"strength training equipment"}
+  azure_ai_search_call_output  status=completed
+    output: {
+        "documents": [
+          {
+            "id": "1",
+            "content": "Adjustable Dumbbell\nStrength\nA compact, adjustable weight for targeted muscle workouts. Price: $59.99.\n",
+            "filepath": "",
+            "title": "",
+            "url": "https://<search-service>.search.windows.net/",
+            "score": 0.6931472,
+            "knowledgeSourceIndex": 0
+   ...
+  message (answer, printed below)
+  (tokens: input 941, output 104, of which reasoning 0)
+
+Agent: Here are some good items for strength training:
+
+1. **Adjustable Dumbbell**
+   - Price: $59.99
+   - A compact, adjustable weight for targeted muscle workouts.
+
+2. **Resistance Bands**
+   - Price: $15.00
+   - Set of colorful bands for light to moderate resistance workouts.
+
+If you're looking for something specific or have a budget in mind, let me know!
+
+User: I need something for cardio under $300, any suggestions?
+
+HTTP #10 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  function_call  find_items_under({"max_price":300,"category":"Cardio"})
+  (tokens: input 806, output 22, of which reasoning 0)
+
+HTTP #11 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.post.search?api-version=2026-04-01 -> 200 OK
+
+HTTP #12 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.post.search?api-version=2026-04-01 -> 200 OK
+  -> ran find_items_under here: 'No products cost $300.00 or less in category Cardio. Cheapest product in Cardio: Treadmill (Cardio): $499.00'
+
+HTTP #13 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  message (answer, printed below)
+  (tokens: input 868, output 42, of which reasoning 0)
+
+Agent: I couldn't find any cardio equipment priced at or below $300. The closest option is a treadmill, which costs $499. If you have a different budget or category in mind, let me know!
+
+HTTP #14 DELETE https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/agents/fitness-agent-search-v2/versions/1?api-version=v1 -> 200 OK
+
+Agent version deleted: fitness-agent-search-v2 v1
+
+================================================================================
+STEP 2: AGENT ON gpt-5.4-mini
+================================================================================
+
+HTTP #15 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/agents/fitness-agent-search-v2/versions?api-version=v1 -> 200 OK, status: active
+Agent created: name=fitness-agent-search-v2 version=1 model=gpt-5.4-mini
+
+User: Which items are good for strength training?
+
+HTTP #16 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  azure_ai_search_call  status=completed
+    arguments: {"query":"strength training products catalog"}
+  azure_ai_search_call_output  status=completed
+    output: {
+        "documents": [
+          {
+            "id": "1",
+            "content": "Adjustable Dumbbell\nStrength\nA compact, adjustable weight for targeted muscle workouts. Price: $59.99.\n",
+            "filepath": "",
+            "title": "",
+            "url": "https://<search-service>.search.windows.net/",
+            "score": 0.6931472,
+            "knowledgeSourceIndex": 0
+   ...
+  message (answer, printed below)
+  (tokens: input 1025, output 109, of which reasoning 0)
+
+Agent: For strength training, these items look like good options:
+
+- Adjustable Dumbbell — $59.99. A compact, adjustable weight for targeted muscle workouts.【5:0†source】
+- Resistance Bands — $15.00. A set of colorful bands for light to moderate resistance workouts.【5:1†source】
+
+If you want, I can also help you find the best strength training items by budget.
+
+User: I need something for cardio under $300, any suggestions?
+
+HTTP #17 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  function_call  find_items_under({"max_price":300,"category":"Cardio"})
+  (tokens: input 886, output 25, of which reasoning 0)
+
+HTTP #18 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.post.search?api-version=2026-04-01 -> 200 OK
+
+HTTP #19 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.post.search?api-version=2026-04-01 -> 200 OK
+  -> ran find_items_under here: 'No products cost $300.00 or less in category Cardio. Cheapest product in Cardio: Treadmill (Cardio): $499.00'
+
+HTTP #20 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  azure_ai_search_call  status=completed
+    arguments: {"query":"cardio products treadmill $499 under $300"}
+  azure_ai_search_call_output  status=completed
+    output: {
+        "documents": [
+          {
+            "id": "3",
+            "content": "Treadmill\nCardio\nA sturdy treadmill with adjustable speed and incline settings. Price: $499.00.\n",
+            "filepath": "",
+            "title": "",
+            "url": "https://<search-service>.search.windows.net/",
+            "score": 3.6905518,
+            "knowledgeSourceIndex": 0
+          ...
+  message (answer, printed below)
+  (tokens: input 1072, output 98, of which reasoning 0)
+
+Agent: I couldn’t find any cardio products under $300.
+
+The closest option in the catalog is a Treadmill in the Cardio category for $499.00【7:0†source】.
+
+If you want, I can also help you look for the cheapest cardio option overall or suggest non-cardio categories within your budget.
+
+HTTP #21 DELETE https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/agents/fitness-agent-search-v2/versions/1?api-version=v1 -> 200 OK
+
+Agent version deleted: fitness-agent-search-v2 v1
+
+================================================================================
+STEP 2: AGENT ON gpt-5.4-nano
+================================================================================
+
+HTTP #22 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/agents/fitness-agent-search-v2/versions?api-version=v1 -> 200 OK, status: active
+Agent created: name=fitness-agent-search-v2 version=1 model=gpt-5.4-nano
+
+User: Which items are good for strength training?
+
+HTTP #23 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  azure_ai_search_call  status=completed
+    arguments: {"query":"strength training equipment items Strength category"}
+  azure_ai_search_call_output  status=completed
+    output: {
+        "documents": [
+          {
+            "id": "1",
+            "content": "Adjustable Dumbbell\nStrength\nA compact, adjustable weight for targeted muscle workouts. Price: $59.99.\n",
+            "filepath": "",
+            "title": "",
+            "url": "https://<search-service>.search.windows.net/",
+            "score": 1.3862944,
+            "knowledgeSourceIndex": 0
+   ...
+  message (answer, printed below)
+  (tokens: input 1027, output 114, of which reasoning 0)
+
+Agent: Here are good strength-training options from our catalog:
+
+- **Adjustable Dumbbell** — **$59.99**【5:0†source】  
+- **Resistance Bands (set)** — **$15.00**【5:1†source】  
+
+If you tell me your **budget** (and whether you prefer **free weights vs. bands vs. machines**), I can narrow it down further.
+
+User: I need something for cardio under $300, any suggestions?
+
+HTTP #24 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  azure_ai_search_call  status=completed
+    arguments: {"query":"cardio equipment under $300"}
+  azure_ai_search_call_output  status=completed
+    output: {
+        "documents": [
+          {
+            "id": "3",
+            "content": "Treadmill\nCardio\nA sturdy treadmill with adjustable speed and incline settings. Price: $499.00.\n",
+            "filepath": "",
+            "title": "",
+            "url": "https://<search-service>.search.windows.net/",
+            "score": 1.2039728,
+            "knowledgeSourceIndex": 0
+          ...
+  function_call  find_items_under({"max_price":300,"category":"Cardio"})
+  (tokens: input 1001, output 50, of which reasoning 0)
+
+HTTP #25 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.post.search?api-version=2026-04-01 -> 200 OK
+
+HTTP #26 POST https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')/docs/search.post.search?api-version=2026-04-01 -> 200 OK
+  -> ran find_items_under here: 'No products cost $300.00 or less in category Cardio. Cheapest product in Cardio: Treadmill (Cardio): $499.00'
+
+HTTP #27 POST https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/openai/v1/responses -> 200 OK, status: completed
+Response (status completed):
+  message (answer, printed below)
+  (tokens: input 1130, output 103, of which reasoning 0)
+
+Agent: I checked the catalog for **cardio equipment under $300**—**there aren’t any matches** in the **Cardio** category at **$300 or less**.
+
+**Closest option available:**
+- **Treadmill (Cardio)** — **$499.00**
+
+If you want, tell me your max budget (or if you’re open to **used/refurb** or **adjacent cardio categories** like **strength + conditioning**), and I can search again.
+
+HTTP #28 DELETE https://<resource-name>.services.ai.azure.com/api/projects/<project-name>/agents/fitness-agent-search-v2/versions/1?api-version=v1 -> 200 OK
+
+Agent version deleted: fitness-agent-search-v2 v1
+
+================================================================================
+CLEANUP
+================================================================================
+
+HTTP #29 GET https://<search-service>.search.windows.net/indexes?api-version=2026-04-01 -> 200 OK
+
+HTTP #30 DELETE https://<search-service>.search.windows.net/indexes('myfitnessindex-v2')?api-version=2026-04-01 -> 204 No Content
+Deleted index: myfitnessindex-v2
+
+================================================================================
+COMPARISON (both questions per model)
+================================================================================
+model          searches functions   input  output reasoning    time      cost
+-----------------------------------------------------------------------------
+gpt-4o-mini           1         1    2615     168         0   11.2s   $0.0005
+gpt-5.4-mini          2         1    2983     232         0    8.8s   $0.0033
+gpt-5.4-nano          2         1    3158     267         0   14.5s   $0.0010
+Prices: list prices per 1M tokens (see PRICES), Global deployment in East US 2, checked 2026-10-23.
+Checks:
+  PASS  gpt-4o-mini: both questions answered
+  PASS  gpt-4o-mini: question 1 used the search tool
+  PASS  gpt-4o-mini: question 2 called find_items_under(max_price=300)
+  PASS  gpt-5.4-mini: both questions answered
+  PASS  gpt-5.4-mini: question 1 used the search tool
+  PASS  gpt-5.4-mini: question 2 called find_items_under(max_price=300)
+  PASS  gpt-5.4-nano: both questions answered
+  PASS  gpt-5.4-nano: question 1 used the search tool
+  PASS  gpt-5.4-nano: question 2 called find_items_under(max_price=300)
