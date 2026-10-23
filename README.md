@@ -1,4 +1,4 @@
-# Azure AI Foundry Agents, Rebuilt and Measured
+# Azure AI Foundry Agents, Built and Measured
 
 ![Python 3.13](https://img.shields.io/badge/python-3.13-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
@@ -9,10 +9,10 @@ I built AI agents on Azure AI Foundry (now
 a product catalog and filters by price, web-grounded agents, an agent that calls a remote MCP server I deployed on
 Azure Functions, safety red-teaming and quality evaluation, and agents with Semantic Kernel and AutoGen. Each has a
 recorded run, and the [findings](docs/findings.md) explain the issues I found, why they happened and how I fixed them.
-It started from Microsoft's [Azure AI Foundry workshop](https://github.com/Azure/ai-foundry-workshop): I rebuilt its
-labs as Python scripts in [`src/`](src/) on the current SDKs and added the MCP server, the price-filter tool and the
-Web Search lab. The Bing, Web Search and MCP agents, and a second version of the Azure AI Search agent, run on the new
-agents API, the others on the classic one.
+Starting from Microsoft's [Azure AI Foundry workshop](https://github.com/Azure/ai-foundry-workshop), I developed
+standalone Python scripts in [`src/`](src/) using current SDKs, adapted the notebook examples, and added the MCP server,
+the price-filter tool and the Web Search lab. The Bing, Web Search and MCP agents, and a second version of the Azure
+AI Search agent, run on the new agents API, the others on the classic one.
 
 [Code](src/) · [Findings](docs/findings.md) · [Labs](#labs) · [Setup](#setup)
 
