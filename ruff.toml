@@ -1,8 +1,8 @@
 # Lint and format settings for the lab scripts: `ruff check .` and `ruff format --check .` from the project root.
 line-length = 120
 target-version = "py313"
-# Microsoft's original notebooks are kept as published; only the scripts added here are checked.
-extend-exclude = ["*.ipynb", "runs"]
+# Saved local runs (git-ignored) are not checked.
+extend-exclude = ["runs"]
 
 [lint]
 # Ruff's default rule set plus import order (I), likely bugs (B) and outdated syntax (UP).
@@ -13,8 +13,8 @@ ignore = ["BLE001"]
 
 [lint.per-file-ignores]
 # LOG015 (root logger): Azure Functions samples log with logging.info and the Functions host captures it.
-"**/function_app/function_app.py" = ["LOG015"]
+"src/functions-mcp-server/function_app.py" = ["LOG015"]
 
 [format]
-# Format the scripts only, not the Markdown files (most of them are Microsoft's workshop docs).
+# Format the scripts only, not the Markdown files.
 exclude = ["*.md"]

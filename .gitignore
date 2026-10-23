@@ -4,6 +4,7 @@ local.settings.json
 
 # Python virtual environments
 .venv/
+.venv-*/
 venv/
 
 # Python and tool caches
@@ -13,8 +14,6 @@ __pycache__/
 # Build metadata written by the editable install (`-e .` in the requirements files)
 *.egg-info/
 
-# Notebooks
-.ipynb_checkpoints
 
 # Saved commands and outputs of local runs
 runs/
@@ -22,8 +21,6 @@ runs/
 # Images made by the image generation script (default --output-dir)
 generated-images/
 
-# BMI analysis images written by the introduction notebook
-1-introduction/bmi_analysis_assistant-*.png
 
 # Charts and evaluation results written by the scripts (--output-dir in the README commands)
 charts/

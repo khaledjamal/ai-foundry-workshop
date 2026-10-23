@@ -7,7 +7,7 @@
 # Rebuild:
 #   uv venv --python 3.13
 #   uv pip install -r requirements-labs.txt
-# Run from the repo root: `-e .` installs the shared helpers in workshop_utils/ (HTTP logging) from this checkout.
+# Run from the repo root: `-e .` installs the shared helpers in src/workshop_utils/ (HTTP log, .env loading) from this checkout.
 -e .
 aiofiles==25.1.0
 aiohappyeyeballs==2.7.1

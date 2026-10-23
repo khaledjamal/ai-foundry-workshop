@@ -87,7 +87,7 @@ Why this fix: the raw probe ([`scripts/probe-mcp-http.py`](../scripts/probe-mcp-
 plain HTTP requests and opens no stream. It worked while the MCP client's calls failed, which pointed at how the
 server handles concurrent requests, not at the tool code or the agent. Raising the per-instance concurrency fixed it
 and kept the one-instance cap, so the cost stays bounded. See the
-[lab README](../2-notebooks/2-agent_service/6-agents-az-functions-mcp/README.md). Recorded run:
+[lab README](../src/functions-mcp-server/README.md). Recorded run:
 [output](../sample-output/6-agents-az-functions-mcp.py-output-20261017-114003.txt).
 
 ## A web-grounded agent searched for 2023 news
@@ -97,13 +97,13 @@ gpt-4o-mini searched for "... news 2023" and presented a 2023 study as recent; t
 instead of who.int. Putting today's date in the instructions and asking for official health sources first fixed both
 in the next run (queries with the current month, who.int cited). The script also builds the Bing search link from each
 query and numbers the citations, as Bing's display requirements ask. Recorded run after the fix:
-[output](../sample-output/4-bing_grounding.py-output-20261018-114459.txt).
+[output](../sample-output/4-bing-grounding.py-output-20261018-114459.txt).
 
 ## Honest run status, no keys in code
 
 The agent scripts (basics, File Search, Azure AI Search, AutoGen, GenAI Ops) check how each agent run actually ended
 and exit with 1 when it didn't complete, instead of always printing "successfully" (for example
-[`1-basics.py`](../2-notebooks/2-agent_service/1-basics.py)). The Code Interpreter script prints a failed run's status
+[`1-basics.py`](../src/2-agents/1-basics.py)). The Code Interpreter script prints a failed run's status
 and error but doesn't exit with 1. Model and project calls sign in with Microsoft Entra ID (`DefaultAzureCredential`
 via `az login`). The only keys are the Azure AI Search admin key and the Function app's MCP key; they come from `.env`
 or from project connections (the Semantic Kernel lab takes the search key from the project's Azure AI Search
@@ -149,7 +149,7 @@ One run per model on two questions: a quick comparison, not a benchmark. Recorde
 it on the command line:
 
 ```bash
-MODEL_DEPLOYMENT_NAME=gpt-4o uv run python 2-notebooks/2-agent_service/5-agents-aisearch.py
+MODEL_DEPLOYMENT_NAME=gpt-4o uv run python src/2-agents/5-agents-aisearch.py
 ```
 
 ## Newer models need the new agents API
@@ -176,8 +176,8 @@ tokens (16K vs 9K), which costs under a cent on gpt-4o-mini. The search fee is l
 estimate: Microsoft publishes no separate Web Search rate, so the script counts searches at the Grounding with Bing
 rate of [$14 per 1,000](https://www.microsoft.com/en-us/bing/apis/grounding-pricing) (checked October 2026). This is one run on three questions, not a benchmark: it shows no
 quality gap either way, and Web Search needs no extra resource or connection, which makes it the simpler default for a
-new agent. Recorded runs: [Web Search](../sample-output/4-web_search.py-output-20261018-144147.txt),
-[Grounding with Bing](../sample-output/4-bing_grounding.py-output-20261018-114459.txt).
+new agent. Recorded runs: [Web Search](../sample-output/4-web-search.py-output-20261018-144147.txt),
+[Grounding with Bing](../sample-output/4-bing-grounding.py-output-20261018-114459.txt).
 
 ## Phi-4 and Phi-4-reasoning vs gpt-4o-mini
 

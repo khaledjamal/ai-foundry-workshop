@@ -21,7 +21,7 @@ jobs:
       - run: pip install ruff==0.17.1
       - run: ruff check .
       - run: ruff format --check .
-      - run: python -m compileall -q 1-introduction 2-notebooks scripts workshop_utils tests
+      - run: python -m compileall -q src scripts tests
 
   # Unit tests of the shared HTTP logging helper against a local server (no Azure), with the HTTP libraries the
   # labs use, at the versions in requirements-labs.txt.

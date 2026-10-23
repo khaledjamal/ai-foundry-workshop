@@ -9,13 +9,12 @@ Run from the project root:
 
 import argparse
 import os
-from pathlib import Path
 
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
-from dotenv import load_dotenv
 
 from workshop_utils import http_log
+from workshop_utils.settings import load_env
 
 
 def get_project_endpoint():
@@ -33,7 +32,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="list only, delete nothing")
     args = parser.parse_args()
 
-    load_dotenv(Path(__file__).resolve().parent.parent / "2-notebooks" / ".env")
+    load_env()
     project_endpoint = get_project_endpoint()
     print(f"Project endpoint: {project_endpoint}")
 

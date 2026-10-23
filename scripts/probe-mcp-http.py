@@ -1,7 +1,7 @@
 """Send raw MCP JSON-RPC requests over HTTP and print each status, header and body, to debug an MCP endpoint.
 
 Sends initialize, the initialized notification, then tools/list, reusing the Mcp-Session-Id the server returns.
-URL and key come from AZURE_FUNCTIONS_MCP_URL and AZURE_FUNCTIONS_MCP_KEY in 2-notebooks/.env (the key is sent as
+URL and key come from AZURE_FUNCTIONS_MCP_URL and AZURE_FUNCTIONS_MCP_KEY in .env (the key is sent as
 x-functions-key and never printed). Run from the repo root:
     python scripts/probe-mcp-http.py [--url URL]
 """
@@ -9,12 +9,11 @@ x-functions-key and never printed). Run from the repo root:
 import argparse
 import json
 import os
-from pathlib import Path
 
 import requests
-from dotenv import load_dotenv
 
 from workshop_utils import http_log
+from workshop_utils.settings import load_env
 
 SHOWN_HEADERS = ("content-type", "mcp-session-id", "www-authenticate")
 
@@ -31,7 +30,7 @@ def post(client, url, headers, message):
 
 
 def main():
-    load_dotenv(Path(__file__).resolve().parent.parent / "2-notebooks" / ".env")
+    load_env()
     parser = argparse.ArgumentParser(description="Raw MCP requests to an HTTP endpoint")
     parser.add_argument("--url", default=os.getenv("AZURE_FUNCTIONS_MCP_URL"))
     args = parser.parse_args()
