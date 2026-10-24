@@ -24,6 +24,10 @@ try:
     import httpx
 except ImportError:
     httpx = None
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None
 
 CHAT_REPLY = {
     "choices": [{"message": {"role": "assistant", "content": "Hello"}}],
@@ -234,6 +238,68 @@ class HttpxLogTest(LogTestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn('"input": "Hi"', text)
                 self.assertIn("--- OUTBOUND RESPONSE #", text)
+
+
+@unittest.skipIf(aiohttp is None, "aiohttp is not installed")
+class AiohttpLogTest(LogTestCase):
+    """aiohttp, the transport of the async azure-* SDK clients."""
+
+    def run_session(self, call, **session_args):
+        async def main():
+            async with aiohttp.ClientSession(**session_args) as session:
+                return await call(session)
+
+        return self.logged(lambda: asyncio.run(main()))
+
+    def test_post_body_and_secret_headers(self):
+        async def call(session):
+            async with session.post(
+                f"{self.base}/chat?api-key=real-key",
+                data=b'{"input": "Hi"}',  # bytes with a JSON content type, as azure-core sends them
+                headers={"api-key": "real-key", "Content-Type": "application/json"},
+            ) as response:
+                return await response.json()
+
+        text, reply = self.run_session(call)
+        self.assertEqual(reply["usage"]["prompt_tokens"], 12)
+        self.assertIn("> POST " + self.base + "/chat?api-key=<redacted>", text)
+        self.assertIn("> api-key: <redacted>", text)
+        self.assertIn('"input": "Hi"', text)
+        self.assertIn('"access_token": "<redacted>"', text)
+        self.assertNotIn("real-key", text)
+        self.assertNotIn("secret-token-value", text)
+
+    def test_gzip_without_automatic_decompression_is_decoded(self):
+        # azure-core makes its sessions with auto_decompress=False and reads the compressed bytes with read().
+        async def call(session):
+            response = await session.request("GET", f"{self.base}/gzip")
+            body = await response.read()
+            response.release()
+            return gzip.decompress(body)
+
+        text, body = self.run_session(call, auto_decompress=False)
+        self.assertEqual(json.loads(body)["choices"][0]["message"]["content"], "Hello")
+        self.assertIn('"content": "Hello"', text)
+        self.assertEqual(text.count("--- OUTBOUND RESPONSE #"), 1)
+
+    def test_body_read_as_a_stream_is_noted(self):
+        async def call(session):
+            async with session.get(f"{self.base}/sse") as response:
+                return [line async for line in response.content]
+
+        text, lines = self.run_session(call)
+        self.assertEqual(len([line for line in lines if line.startswith(b"data:")]), 4)
+        self.assertIn("< 200 OK", text)
+        self.assertIn("body not read with read(): not logged", text)
+
+    def test_connection_error_is_logged(self):
+        async def main():
+            async with aiohttp.ClientSession() as session:
+                await session.get("http://127.0.0.1:9/nothing")
+
+        with self.assertLogs("http_log") as captured, self.assertRaises(aiohttp.ClientConnectionError):
+            asyncio.run(main())
+        self.assertIn("--- OUTBOUND ERROR #", "\n".join(captured.output))
 
 
 if __name__ == "__main__":

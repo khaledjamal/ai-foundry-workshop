@@ -6,6 +6,8 @@ library passes through, so calls made by clients built deep inside an SDK are lo
 - requests (`HTTPAdapter.send`): plain REST calls, the azure-* SDKs (azure-core) and azure-identity
 - httpx2 and httpx (`HTTPTransport.handle_request` and its async twin): openai, Semantic Kernel, AutoGen, the MCP
   client
+- aiohttp (a `TraceConfig` added to every new `ClientSession`, aiohttp's own tracing hooks): the async azure-* SDK
+  clients (`azure.ai.projects.aio`, `azure.search.documents.aio`, ...)
 
 Output (the format of a Spring RestTemplate logging interceptor, with a call number to pair the two blocks):
 
@@ -41,7 +43,12 @@ Functions `?code=` key), and token, password and credential fields in JSON and f
 (base64 images, for example) are shortened and binary bodies are shown as type and size.
 
 The response block is written once its body has been read, so a streamed reply (server-sent events) is logged when
-the stream ends, without slowing the stream down. aiohttp (the azure .aio clients) is not covered.
+the stream ends, without slowing the stream down. With aiohttp the body is logged when it is read with `read()`, as
+azure-core does for every call that isn't a download; a body read piece by piece from `response.content` is noted
+in the log, not shown.
+
+Record and replay (workshop_utils/http_replay.py) use the same hooks: `enable()` also starts them when HTTP_REPLAY
+is set to record or replay.
 """
 
 import atexit
@@ -112,10 +119,18 @@ _lock = threading.Lock()
 _pending = set()
 _seen_gets = set()  # URLs already fetched with GET; a repeat is a status check
 _totals = {"calls": 0, "seconds": 0.0, "sent": 0, "received": 0, "input_tokens": 0, "output_tokens": 0}
+_observers = []  # functions called with each finished call (http_replay's recorder)
 
 
 def enable(level=None, metrics=None, max_body=None, polls=None):
-    """Start logging HTTP calls. Safe to call more than once; later calls only change the settings."""
+    """Start logging HTTP calls. Safe to call more than once; later calls only change the settings.
+
+    Also starts record or replay when HTTP_REPLAY says so (http_replay.py), before the logging hooks, so a replayed
+    call is logged like a real one.
+    """
+    from workshop_utils import http_replay
+
+    http_replay.install()
     level = level or os.environ.get("HTTP_LOG", "full").strip().lower() or "full"
     if level not in LEVELS:
         raise ValueError(f"HTTP_LOG must be one of {', '.join(LEVELS)}, not {level!r}")
@@ -127,7 +142,7 @@ def enable(level=None, metrics=None, max_body=None, polls=None):
     if polls not in POLL_MODES:
         raise ValueError(f"HTTP_LOG_POLLS must be one of {', '.join(POLL_MODES)}, not {polls!r}")
     _settings.update(level=level, metrics=metrics, max_body=max_body, polls=polls)
-    if level == "off":
+    if level == "off" and not _observers:
         disable()
         return
     if not logger.handlers:
@@ -136,9 +151,14 @@ def enable(level=None, metrics=None, max_body=None, polls=None):
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         logger.propagate = False
+    _install_hooks()
+
+
+def _install_hooks():
     _patch_requests()
     for name in ("httpx2", "httpx"):
         _patch_httpx(name)
+    _patch_aiohttp()
 
 
 def disable():
@@ -147,6 +167,18 @@ def disable():
         setattr(cls, name, original)
     _originals.clear()
     _seen_gets.clear()
+
+
+def add_observer(function):
+    """Call function(call, body) for every finished call: the request and response as sent and received, and the
+    whole response body (decompressed), whatever the log level. Used by http_replay to record calls."""
+    if function not in _observers:
+        _observers.append(function)
+
+
+def remove_observer(function):
+    if function in _observers:
+        _observers.remove(function)
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -158,6 +190,9 @@ class _Call:
         self.number = next(_call_numbers)
         self.method = method
         self.url = _redact_url(str(url))
+        headers = list(headers)
+        self.request_headers = headers  # as sent (for observers; the log shows them redacted)
+        self.request_body = body  # bytes, None, or a note such as "<streamed body, not logged>"
         self.sent = len(body) if isinstance(body, bytes) else 0
         self.start = time.perf_counter()
         self.done = False
@@ -188,7 +223,7 @@ class _Call:
 
     def record(self, chunk):
         self.received += len(chunk)
-        if self.captured < MAX_CAPTURE:
+        if self.captured < MAX_CAPTURE or _observers:  # a recording keeps the whole body
             self.chunks.append(chunk)
             self.captured += len(chunk)
 
@@ -200,6 +235,10 @@ class _Call:
         with _lock:
             _pending.discard(self)
         body = _decode(b"".join(self.chunks), self.encoding)
+        for observer in _observers:
+            observer(self, body, note)
+        if _settings["level"] == "off":
+            return
         content_type = _header(self.headers, "content-type")
         usage = _usage(body, content_type) if _settings["metrics"] else None
         if _settings["metrics"]:
@@ -235,6 +274,8 @@ class _Call:
         self.done = True
         with _lock:
             _pending.discard(self)
+        if _settings["level"] == "off":
+            return
         if _settings["level"] == "summary":
             _write([f"HTTP #{self.number} {self.method} {self.url} -> {type(error).__name__}: {error}"])
         else:
@@ -406,6 +447,92 @@ def _patch_httpx(module_name):
     _originals[(async_cls, "handle_async_request")] = original_async
     sync_cls.handle_request = handle_request
     async_cls.handle_async_request = handle_async_request
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# aiohttp: add a TraceConfig to every new ClientSession (aiohttp's public tracing hooks). The request block is written
+# when the response headers arrive (the body has been sent by then), the response block when `read()` returns the
+# body. Sessions made before enable() aren't logged.
+
+
+def _patch_aiohttp():
+    try:
+        import aiohttp
+    except ImportError:
+        return
+    session_cls, response_cls = aiohttp.ClientSession, aiohttp.ClientResponse
+    if (session_cls, "__init__") in _originals:
+        return
+    original_init, original_release, original_close = session_cls.__init__, response_cls.release, response_cls.close
+
+    def active():
+        return (session_cls, "__init__") in _originals
+
+    async def on_request_start(session, ctx, params):
+        ctx.headers, ctx.body = list(params.headers.items()), []
+
+    async def on_request_headers_sent(session, ctx, params):
+        ctx.headers = list(params.headers.items())  # with the headers aiohttp adds itself
+
+    async def on_request_chunk_sent(session, ctx, params):
+        ctx.body.append(params.chunk if isinstance(params.chunk, bytes) else bytes(params.chunk))
+
+    def start(ctx, params):
+        body = b"".join(getattr(ctx, "body", []))
+        headers = getattr(ctx, "headers", [])
+        return _Call(params.method, params.url, headers, body, _header(headers, "content-type"))
+
+    async def on_request_end(session, ctx, params):
+        if not active():
+            return
+        call = ctx.call = start(ctx, params)
+        response = params.response
+        # azure-core turns automatic decompression off and decompresses itself: the bytes read are still compressed.
+        encoding = None if session.auto_decompress else response.headers.get("Content-Encoding")
+        headers = [(name.decode("latin-1"), value.decode("latin-1")) for name, value in response.raw_headers]
+        call.response(response.status, response.reason, headers, encoding)
+        response._http_log_call = call
+
+    async def on_response_chunk_received(session, ctx, params):
+        call = getattr(ctx, "call", None)
+        if call is not None and not call.done:
+            call.record(params.chunk)  # read() reports the whole body at once
+            call.finish()
+
+    async def on_request_exception(session, ctx, params):
+        if active():
+            start(ctx, params).failed(params.exception)
+
+    def unread(response):
+        call = getattr(response, "_http_log_call", None)
+        if call is not None and not call.done:
+            call.finish(note="body not read with read(): not logged")
+
+    def init(self, *args, **kwargs):
+        trace = aiohttp.TraceConfig()
+        trace.on_request_start.append(on_request_start)
+        trace.on_request_headers_sent.append(on_request_headers_sent)
+        trace.on_request_chunk_sent.append(on_request_chunk_sent)
+        trace.on_request_end.append(on_request_end)
+        trace.on_response_chunk_received.append(on_response_chunk_received)
+        trace.on_request_exception.append(on_request_exception)
+        kwargs["trace_configs"] = [*(kwargs.get("trace_configs") or []), trace]
+        original_init(self, *args, **kwargs)
+
+    def release(self):
+        unread(self)
+        return original_release(self)
+
+    def close(self):
+        unread(self)
+        return original_close(self)
+
+    _originals[(session_cls, "__init__")] = original_init
+    _originals[(response_cls, "release")] = original_release
+    _originals[(response_cls, "close")] = original_close
+    session_cls.__init__ = init
+    response_cls.release = release
+    response_cls.close = close
 
 
 # ---------------------------------------------------------------------------------------------------------------

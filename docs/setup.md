@@ -179,6 +179,31 @@ starts), for example `HTTP_LOG=summary uv run python src/check-setup.py`:
 | `HTTP_LOG_MAX_BODY` | characters shown of each body, default 8192; the rest is cut with `...more...` |
 | `HTTP_LOG_POLLS` | `short` (default): a repeated GET of the same URL, such as an agent run checked until it ends, is one line with the reply's `status` (`HTTP #7 GET <url> -> 200 OK, status: in_progress`); the first GET of a URL stays in full. `full`: every one in full |
 
+### Record and replay
+
+The same hooks can save every call of a run and answer the next run from the saved files, so a script runs again
+without calling Azure or paying ([`http_replay.py`](../src/workshop_utils/http_replay.py)):
+
+```bash
+# real calls, saved (runs/ is git-ignored)
+HTTP_REPLAY=record HTTP_REPLAY_DIR=runs/recordings/chat uv run python src/1-models/1-basic-chat-completion-azure-openai.py
+# the same run again from the saved files, no network
+HTTP_REPLAY=replay HTTP_REPLAY_DIR=runs/recordings/chat uv run python src/1-models/1-basic-chat-completion-azure-openai.py
+```
+
+| Variable | Values |
+|---|---|
+| `HTTP_REPLAY` | `off` (default), `record`, `replay` |
+| `HTTP_REPLAY_DIR` | folder of the recording: one JSON file per call, with the whole response; secrets redacted |
+| `HTTP_REPLAY_IGNORE_FIELDS` | JSON body fields left out when requests are matched, comma-separated (for values that change on every run) |
+
+A replayed request must match a recorded one (method, URL, body); one that doesn't fails with `HttpReplayMiss`
+instead of calling the service, connections to other machines are refused, and the Azure CLI sign-in isn't needed.
+A replay shows that the code still handles the recorded answers, not that the service still answers the same way.
+Values that change between runs make a request new: the Web Search lab, for example, puts today's date in its
+instructions, so its recording replays only on the same day. HTTP only: requests, httpx and aiohttp; other protocols
+(Event Hubs' AMQP, for example) aren't covered.
+
 Unit tests against a local server (no Azure): `uv run python -m unittest discover -s tests -v`.
 
 ## Troubleshooting

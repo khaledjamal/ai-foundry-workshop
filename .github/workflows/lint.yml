@@ -23,8 +23,9 @@ jobs:
       - run: ruff format --check .
       - run: python -m compileall -q src scripts tests
 
-  # Unit tests of the shared HTTP logging helper against a local server (no Azure), with the HTTP libraries the
-  # labs use, at the versions in requirements-labs.txt.
+  # Unit tests of the shared HTTP logging and record/replay helpers against a local server (no Azure), with the HTTP
+  # libraries the labs use (and azure-identity, for the replay placeholder token), at the versions in
+  # requirements-labs.txt.
   test:
     runs-on: ubuntu-latest
     steps:
@@ -32,5 +33,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install -e . requests==2.34.2 httpx2==2.13.1 httpx==0.28.1
+      - run: >-
+          pip install -e . requests==2.34.2 httpx2==2.13.1 httpx==0.28.1 aiohttp==3.14.5 azure-core==1.41.0
+          azure-identity==1.26.0
       - run: python -m unittest discover -s tests -v
