@@ -12,7 +12,8 @@ recorded run, and the [findings](docs/findings.md) explain the issues I found, w
 Starting from Microsoft's [Azure AI Foundry workshop](https://github.com/Azure/ai-foundry-workshop), I developed
 standalone Python scripts in [`src/`](src/) using current SDKs, adapted the notebook examples, and added the MCP server,
 the price-filter tool and the Web Search lab. The Bing, Web Search and MCP agents, and a second version of the Azure
-AI Search agent, run on the new agents API, the others on the classic one.
+AI Search agent, run on the new agents API, the others on the classic one. The workshop's end-to-end sample app runs
+on the current agents API in its own repo: [Clinical Research Agents](https://github.com/khaledjamal/azure-ai-foundry-clinical-agents).
 
 [Code](src/) · [Findings](docs/findings.md) · [Labs](#labs) · [Setup](#setup)
 
@@ -187,8 +188,9 @@ README.upstream.md        Microsoft's original README
 
 Microsoft's notebooks aren't copied here: each script's docstring and the labs table in
 [docs/setup.md](docs/setup.md#labs) link to the original, and the data files the scripts read (the X-ray image, the
-evaluation data and the sample heart-rate data) sit next to them. The other workshop files (the end-to-end sample app
-and the documentation site) are in the [original repository](https://github.com/Azure/ai-foundry-workshop).
+evaluation data and the sample heart-rate data) sit next to them. The end-to-end sample app is in its own repo,
+[azure-ai-foundry-clinical-agents](https://github.com/khaledjamal/azure-ai-foundry-clinical-agents), updated to the
+current SDKs; the documentation site is in the [original repository](https://github.com/Azure/ai-foundry-workshop).
 `README.upstream.md` describes the original workshop and its setup, which partly uses older APIs (for example the
 project connection string).
 

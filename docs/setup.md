@@ -58,8 +58,9 @@ painting of fresh fruits and vegetables arranged in a heart shape" (a 512 px cop
 
 <img src="../sample-output/2-embeddings-image-generation.py-image-20261018-133641.jpg" alt="Model-generated watercolor of fruits and vegetables arranged in a heart shape" width="256">
 
-**Not included:** the workshop's end-to-end sample app, which this project doesn't cover; it is in the
-[original repository](https://github.com/Azure/ai-foundry-workshop/tree/main/3-ai-native-e2e-sample).
+**Not included:** the workshop's end-to-end sample app
+([original](https://github.com/Azure/ai-foundry-workshop/tree/main/3-ai-native-e2e-sample)), which runs on the current
+SDKs in its own repo: [azure-ai-foundry-clinical-agents](https://github.com/khaledjamal/azure-ai-foundry-clinical-agents).
 
 ## What the other labs need
 
